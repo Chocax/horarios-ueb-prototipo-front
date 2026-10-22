@@ -1,0 +1,189 @@
+// CU-08 Gestionar grupos · CU-09 Sugerir número de grupos · RF-07, RF-18
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Curso, Grupo } from '../../core/models';
+import { cupoEfectivo } from '../../core/rules/reglas-duras';
+import { StoreService } from '../../core/services/store.service';
+import { ToastService } from '../../core/services/toast.service';
+import { normalizar, nuevoId } from '../../core/util';
+import { Icon } from '../../shared/icon';
+import { Modal } from '../../shared/modal';
+
+@Component({
+  selector: 'app-grupos',
+  imports: [FormsModule, Icon, Modal],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">CU-08 · CU-09 · RF-07 · RF-18</div>
+          <h1>Grupos y demanda</h1>
+          <p class="serif sub">Norma del programa: en el día cada curso abre al menos dos grupos (G1 y G2) con docentes distintos; en la noche, uno (G3) y, si la demanda lo justifica, un segundo (G4). Registre la demanda estimada por curso; el sistema sugiere demanda ÷ {{ p().cupoMaximo }} grupos, redondeando hacia arriba. Puede ajustar la sugerencia mientras cada grupo quede dentro del cupo efectivo de {{ efectivo() }}.</p>
+        </div>
+      </div>
+
+      <div class="aviso" style="margin-bottom:16px">
+        <app-icon name="alert" [size]="18" />
+        <div>Todos los semestres abren <strong>dos grupos diurnos (G1, G2)</strong> con docentes distintos y <strong>un grupo nocturno (G3)</strong>; Matemáticas básicas y Cálculo diferencial abren un segundo grupo nocturno (G4). Cupo máximo {{ p().cupoMaximo }} + tolerancia {{ p().toleranciaCupo }} % = <strong>{{ efectivo() }}</strong> (R9).</div>
+      </div>
+
+      <div class="row" style="margin-bottom:14px">
+        <input type="search" placeholder="Buscar curso…" [ngModel]="q()" (ngModelChange)="q.set($event)" style="max-width:320px" />
+        <select [ngModel]="fNivel()" (ngModelChange)="fNivel.set(+$event)" aria-label="Semestre">
+          <option [ngValue]="0">Todos los semestres</option>
+          @for (n of [1,2,3,4,5,6,7,8,9]; track n) { <option [ngValue]="n">Semestre {{ n }}</option> }
+        </select>
+        <span class="caption">{{ filas().length }} curso(s) · {{ store.gruposAbiertos().length }} grupos abiertos</span>
+      </div>
+
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead><tr><th>Curso</th><th class="num">Demanda</th><th class="num">Sugeridos</th><th>Grupos abiertos</th><th style="width:250px">Ajustar número de grupos</th></tr></thead>
+          <tbody>
+            @for (f of filas(); track f.curso.id) {
+              <tr>
+                <td><strong>{{ f.curso.nombre }}</strong><div class="caption">{{ f.curso.codigo }} · semestre {{ f.curso.nivel }}</div></td>
+                <td class="num"><input type="number" class="mini" [ngModel]="f.demanda" (change)="demanda(f.curso, $any($event.target).value)" min="0" [attr.aria-label]="'Demanda ' + f.curso.nombre" /></td>
+                <td class="num"><span class="pill blue">{{ f.sugeridos }}</span></td>
+                <td>
+                  <div class="row" style="gap:6px">
+                    @for (g of f.grupos; track g.id) {
+                      <button type="button" class="chip" [class.n]="g.jornada === 'NOCTURNA'" [class.mal]="g.cupoPlaneado > efectivo()" (click)="editar(g)">
+                        {{ g.codigo }} · {{ g.jornada === 'DIURNA' ? 'Diurna' : 'Nocturna' }} · {{ g.cupoPlaneado }}
+                      </button>
+                    }
+                    <button type="button" class="btn icon-btn" title="Agregar grupo" (click)="nuevo(f.curso)"><app-icon name="plus" [size]="14" /></button>
+                  </div>
+                </td>
+                <td>
+                  <div class="row" style="gap:6px;flex-wrap:nowrap">
+                    <input type="number" class="mini" #n [value]="f.grupos.length || f.sugeridos" min="1" [attr.aria-label]="'Número de grupos ' + f.curso.nombre" />
+                    <button class="btn btn-sm" (click)="aplicar(f.curso, +n.value)">Aplicar</button>
+                    @if (f.sugeridos && f.sugeridos !== f.grupos.length) {
+                      <button class="btn btn-sm btn-ghost" (click)="aplicar(f.curso, f.sugeridos)">Usar {{ f.sugeridos }}</button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (edit(); as e) {
+      <app-modal [titulo]="(esNuevo() ? 'Nuevo grupo · ' : '') + etiqueta(e)" subtitulo="El cupo planeado se valida contra el cupo efectivo (R9)." (cerrar)="edit.set(null)">
+        <div class="form-grid">
+          <div class="field"><label>Código</label><input type="text" [(ngModel)]="e.codigo" /></div>
+          <div class="field"><label>Jornada</label>
+            <select [(ngModel)]="e.jornada"><option value="DIURNA">Diurna (07:00–18:00)</option><option value="NOCTURNA">Nocturna (18:00–22:00)</option></select>
+          </div>
+          <div class="field"><label>Cupo planeado (máx. {{ efectivo() }})</label><input type="number" [(ngModel)]="e.cupoPlaneado" min="1" /></div>
+          <div class="field"><label>Docente preferente (opcional)</label>
+            <select [(ngModel)]="e.docentePreferido">
+              <option [ngValue]="null">Sin preferencia: lo elige el generador</option>
+              @for (d of habilitadosDe(e.cursoId); track d.id) { <option [ngValue]="d.id">{{ d.nombre }}</option> }
+            </select>
+            <span class="caption">El generador lo intenta primero en este grupo (asignación acordada con el docente).</span>
+          </div>
+        </div>
+        @if (e.jornada === 'DIURNA') {
+          <p class="caption" style="margin-top:10px">Norma del programa: los grupos diurnos de un curso los dictan docentes distintos (B6).</p>
+        }
+        @if (error()) { <div class="errores" style="margin-top:14px">{{ error() }}</div> }
+        <div class="modal-foot">
+          <button class="btn btn-ghost" (click)="edit.set(null)">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar(e)">Guardar grupo</button>
+        </div>
+      </app-modal>
+    }
+  `,
+  styles: [
+    `
+      .mini { width: 76px; padding: 5px 8px; text-align: right; }
+      .chip { font: inherit; font-size: 12.5px; font-weight: 500; border: 1px solid var(--hairline); background: #fff8e6; border-radius: 99px; padding: 3px 10px; cursor: pointer; }
+      .chip.n { background: #e8eefc; }
+      .chip.mal { background: #fdeeec; border-color: var(--color-coral); color: #8e1a0a; }
+      .chip:hover { border-color: var(--color-notion-blue); }
+    `,
+  ],
+})
+export class Grupos {
+  protected readonly store = inject(StoreService);
+  private readonly toast = inject(ToastService);
+  protected readonly q = signal('');
+  protected readonly fNivel = signal(0);
+  protected readonly edit = signal<Grupo | null>(null);
+  protected readonly esNuevo = signal(false);
+  protected readonly error = signal('');
+  protected readonly p = this.store.parametros;
+  protected readonly efectivo = computed(() => cupoEfectivo(this.p()));
+
+  protected readonly filas = computed(() => {
+    const q = normalizar(this.q());
+    const ofertados = new Set(this.store.ofertasPeriodo().map((o) => o.cursoId));
+    return [...this.store.cursos()]
+      .filter((c) => ofertados.has(c.id) || this.store.gruposAbiertos().some((g) => g.cursoId === c.id))
+      .filter((c) => (!q || normalizar(c.nombre).includes(q)) && (!this.fNivel() || c.nivel === this.fNivel()))
+      .sort((a, b) => a.nivel - b.nivel || a.codigo.localeCompare(b.codigo))
+      .map((curso) => {
+        const s = this.store.sugerenciaGrupos(curso.id);
+        return {
+          curso,
+          demanda: s.demanda,
+          sugeridos: s.sugeridos,
+          grupos: this.store.gruposAbiertos().filter((g) => g.cursoId === curso.id).sort((a, b) => a.codigo.localeCompare(b.codigo)),
+        };
+      });
+  });
+
+  habilitadosDe(cursoId: string) {
+    return this.store.docentes().filter((d) => d.habilitaciones.includes(cursoId));
+  }
+  etiqueta(g: Grupo) {
+    return `${this.store.catalogo().curso(g.cursoId)?.nombre ?? ''} ${g.codigo}`;
+  }
+  demanda(c: Curso, v: string) {
+    const r = this.store.actualizarDemanda(c.id, Number(v));
+    if (!r.ok) this.toast.error(r.mensaje ?? 'Error');
+    else {
+      const s = this.store.sugerenciaGrupos(c.id);
+      this.toast.info(`Demanda de ${c.nombre}: ${s.demanda}`, [`Se sugieren ${s.sugeridos} grupo(s) (${s.demanda} ÷ ${this.p().cupoMaximo}, hacia arriba). Mínimo posible: ${s.minimo}.`]);
+    }
+  }
+  aplicar(c: Curso, n: number) {
+    const r = this.store.aplicarNumeroGrupos(c.id, n);
+    if (r.ok) this.toast.ok('Grupos actualizados', [r.mensaje ?? '']);
+    else this.toast.error('No se puede aplicar', [r.mensaje ?? '']);
+  }
+  editar(g: Grupo) {
+    this.error.set('');
+    this.esNuevo.set(false);
+    this.edit.set({ ...g });
+  }
+  nuevo(c: Curso) {
+    const n = this.store.gruposPeriodo().filter((g) => g.cursoId === c.id).length + 1;
+    this.error.set('');
+    this.esNuevo.set(true);
+    this.edit.set({
+      id: nuevoId('grp'),
+      periodoId: this.store.periodo().id,
+      cursoId: c.id,
+      codigo: `G${n}`,
+      jornada: n <= 2 ? 'DIURNA' : 'NOCTURNA',
+      cupoPlaneado: this.p().cupoMaximo,
+      inscritos: null,
+      estado: 'ABIERTO',
+    });
+  }
+  guardar(g: Grupo) {
+    const r = this.store.guardarGrupo({ ...g, cupoPlaneado: Number(g.cupoPlaneado) });
+    if (!r.ok) {
+      this.error.set(r.mensaje ?? 'Error');
+      return;
+    }
+    this.edit.set(null);
+    this.toast.ok(`Grupo ${this.etiqueta(g)} guardado`, this.store.versionTrabajo() ? ['Si estaba pendiente, use «Reintentar» en el tablero.'] : undefined);
+  }
+}

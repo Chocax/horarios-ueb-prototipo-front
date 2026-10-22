@@ -1,0 +1,7 @@
+identificador;nombre;correo;vinculacion;escalafon;horas_max;cursos_habilitados
+D2101;Paola Andrea Niño;pnino@ueb.demo;TC;Asistente;;ISI-205
+D2102;Hugo Fernando Rey;hrey@ueb.demo;XX;Asistente;;ISI-104
+D2103;Sandra Milena Cruz;scruz-ueb.demo;MT;Auxiliar;8;ISI-104
+D2104;Felipe Andrés Mora;fmora@ueb.demo;1/4;Asistente;4;ISI-000
+D2105;Lorena Patricia Vega;lvega@ueb.demo;3/4;Asociado;;ISI-205
+D2106;Iván Darío Castaño;icastano@ueb.demo;MT;Titular;;ISI-104

@@ -1,0 +1,51 @@
+codigo;nombre;nivel;creditos;sesiones_semanales;caracteristicas;demanda
+ISI-101;Matemáticas básicas;1;3;2;;142
+ISI-102;Lógica matemática;1;2;2;;99
+ISI-103;Matemáticas discretas;1;3;2;;106
+ISI-104;Fundamentos de programación;1;3;2;EQUIPOS_COMPUTO;106
+ISI-105;Introducción a la ingeniería de sistemas;1;3;2;;106
+ISI-106;Estructuras del pensamiento I;1;1;1;MOBILIARIO_MOVIL;106
+ISI-201;Cálculo diferencial;12;3;2;;145
+ISI-202;Álgebra lineal;2;3;2;;109
+ISI-203;Física I (Mecánica);2;3;2;LAB_FISICA;109
+ISI-204;Lógica difusa;2;2;2;;102
+ISI-205;Programación I;2;4;3;EQUIPOS_COMPUTO;102
+ISI-206;Estructuras del pensamiento II;2;1;1;MOBILIARIO_MOVIL;109
+ISI-207;Seminario de bioética;2;1;1;;109
+ISI-301;Cálculo integral;3;3;2;;98
+ISI-302;Estadística y probabilidad;3;2;2;;105
+ISI-303;Física II (Electricidad);3;3;2;LAB_FISICA;98
+ISI-304;Programación II;3;4;3;EQUIPOS_COMPUTO;105
+ISI-305;Estructuras de datos;3;3;2;EQUIPOS_COMPUTO;98
+ISI-306;Proyecto núcleo I;3;1;1;MOBILIARIO_MOVIL;98
+ISI-307;Estructuras del pensamiento III;3;1;6;MOBILIARIO_MOVIL;98
+ISI-401;Matemáticas aplicadas;4;3;2;;101
+ISI-402;Complejidad algorítmica;4;3;2;;101
+ISI-403;Bases de datos I;4;3;2;EQUIPOS_COMPUTO;101
+ISI-404;Sistemas digitales y arquitectura;4;2;2;;108
+ISI-405;Dirección y planeación;4;3;2;MOBILIARIO_MOVIL;101
+ISI-406;Estructuras del pensamiento IV;4;1;1;MOBILIARIO_MOVIL;101
+ISI-501;Dinámica de sistemas;5;3;2;;68
+ISI-502;Ingeniería de software I;5;3;2;;68
+ISI-503;Bases de datos II;5;3;2;EQUIPOS_COMPUTO;68
+ISI-504;Sistemas operacionales;5;3;2;EQUIPOS_COMPUTO;68
+ISI-505;Microprocesadores y programación assembler;5;2;2;EQUIPOS_COMPUTO;61
+ISI-506;Historia y filosofía de la ingeniería;5;1;1;;54
+ISI-601;Labor social;6;2;1;;64
+ISI-602;Modelos y simulación de sistemas;6;3;2;;71
+ISI-603;Ingeniería de software II;6;3;2;;71
+ISI-604;Redes de datos I;6;3;2;EQUIPOS_COMPUTO|LAB_REDES;71
+ISI-605;Gestión de proyectos;6;3;2;MOBILIARIO_MOVIL;71
+ISI-606;Proyecto núcleo II;6;1;1;PROYECTOR;57
+ISI-607;Investigación tecnológica y de ingeniería;6;2;2;;64
+ISI-701;Taller de práctica profesional;7;1;1;MOBILIARIO_MOVIL;60
+ISI-702;Electiva profesional I;7;2;2;;67
+ISI-703;Ingeniería de software III;7;3;2;;74
+ISI-704;Redes de datos II;7;3;2;EQUIPOS_COMPUTO|LAB_REDES;74
+ISI-705;Gestión de tecnología e innovación;7;2;2;;67
+ISI-706;Legislación, normatividad y ciudadanía;7;1;1;;60
+ISI-707;Seminario de investigación;7;3;2;MOBILIARIO_MOVIL;74
+ISI-801;Electiva profesional II;8;2;2;;70
+ISI-802;Compiladores;8;3;2;EQUIPOS_COMPUTO;55
+ISI-803;Seguridad de la información;8;3;2;EQUIPOS_COMPUTO|LAB_REDES;55
+ISI-804;Sistemas inteligentes;8;2;2;EQUIPOS_COMPUTO;70

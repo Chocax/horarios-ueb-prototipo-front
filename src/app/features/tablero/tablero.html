@@ -1,0 +1,258 @@
+<div class="page tablero">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">CU-10 · CU-11 · CU-12 · CU-13 · RF-08 a RF-11</div>
+      <h1>Tablero del horario</h1>
+      @if (v(); as ver) {
+        <p class="sub">
+          @if (editable()) {
+            <span class="pill yellow">Versión {{ ver.numero }} · borrador</span>
+          } @else {
+            <span class="pill green">Versión {{ ver.numero }} · publicada (solo lectura)</span>
+          }
+          <span class="caption" style="margin-left:8px">{{ ver.origen }} · {{ fecha(ver.fechaCreacion) }}</span>
+        </p>
+      }
+    </div>
+    <div class="row">
+      <button class="btn btn-ghost" (click)="verBlandas.set(!verBlandas())">
+        <app-icon name="gauge" [size]="16" /> Restricciones blandas
+        <span class="pill" [class.yellow]="blandas().length">{{ blandas().length }}</span>
+      </button>
+      <button class="btn btn-primary" (click)="generar()" [disabled]="store.periodo().estado === 'CERRADO'">
+        <app-icon name="wand" [size]="16" /> {{ vt() ? 'Regenerar propuesta' : 'Generar propuesta' }}
+      </button>
+    </div>
+  </div>
+
+  @if (!v()) {
+    <div class="card vacio">
+      <app-icon name="board" [size]="34" />
+      <h3>Aún no hay propuesta para {{ store.periodo().codigo }}</h3>
+      <p>El generador asigna docente, aula y bloques a los {{ store.gruposAbiertos().length }} grupos abiertos validando R1–R9.<br />Los grupos que no se puedan ubicar quedan pendientes con su causa.</p>
+      <button class="btn btn-primary" style="margin-top:14px" (click)="generar()" [disabled]="store.periodo().estado === 'CERRADO'"><app-icon name="wand" [size]="16" /> Generar propuesta inicial</button>
+    </div>
+  } @else {
+    @if (!editable()) {
+      <div class="aviso warn" style="margin-bottom:14px">
+        <app-icon name="lock" [size]="18" />
+        <div>La versión publicada no se edita. Para ajustarla, genere una propuesta nueva o restáurela como borrador desde <a routerLink="/versiones">Versiones</a>.</div>
+      </div>
+    }
+
+    <!-- resumen -->
+    <div class="resumen">
+      <div><span class="k">{{ v()!.sesiones.length }}</span><span class="caption">sesiones</span></div>
+      <div><span class="k" [class.rojo]="pendientes().length">{{ pendientes().length }}</span><span class="caption">grupos pendientes</span></div>
+      <div><span class="k" [class.rojo]="violaciones().length">{{ violaciones().length }}</span><span class="caption">sesiones con violación dura</span></div>
+      <div><span class="k">{{ blandas().length }}</span><span class="caption">avisos de blandas</span></div>
+      <div class="spacer"></div>
+      <div class="filtros">
+        <div class="tabs">
+          <button [class.on]="modo() === 'nivel'" (click)="modo.set('nivel')">Por semestre</button>
+          <button [class.on]="modo() === 'docente'" (click)="modo.set('docente')">Por docente</button>
+          <button [class.on]="modo() === 'aula'" (click)="modo.set('aula')">Por aula</button>
+        </div>
+        @switch (modo()) {
+          @case ('nivel') {
+            <select [ngModel]="nivel()" (ngModelChange)="nivel.set(+$event)" aria-label="Semestre">
+              @for (n of [1,2,3,4,5,6,7,8,9]; track n) { <option [ngValue]="n">Semestre {{ n }}</option> }
+            </select>
+            <select [ngModel]="jornada()" (ngModelChange)="jornada.set($event)" aria-label="Jornada">
+              <option value="">Diurna y nocturna</option><option value="DIURNA">Solo diurna</option><option value="NOCTURNA">Solo nocturna</option>
+            </select>
+          }
+          @case ('docente') {
+            <select [ngModel]="docenteId()" (ngModelChange)="docenteId.set($event)" aria-label="Docente">
+              <option value="">Seleccione un docente…</option>
+              @for (d of docentesConClase(); track d.id) { <option [value]="d.id">{{ d.nombre }} ({{ store.cargaDocente(v(), d.id) }}/{{ d.horasMaxDocencia }} h)</option> }
+            </select>
+          }
+          @case ('aula') {
+            <select [ngModel]="aulaId()" (ngModelChange)="aulaId.set($event)" aria-label="Aula">
+              <option value="">Seleccione un aula…</option>
+              @for (a of aulasOrden(); track a.id) { <option [value]="a.id">{{ a.codigo }} · {{ a.capacidad }} puestos</option> }
+            </select>
+          }
+        }
+      </div>
+    </div>
+
+    @if (ultimoRechazo(); as rz) {
+      <div class="aviso error rechazo">
+        <app-icon name="alert" [size]="18" />
+        <div style="flex:1">
+          <strong>Movimiento rechazado:</strong> {{ rz.titulo }}
+          <div class="row" style="gap:6px;margin-top:6px">
+            @for (x of rz.violaciones; track $index) { <span class="regla" [title]="nombreRegla(x.regla)">{{ x.regla }}</span> <span>{{ x.mensaje }}</span> }
+          </div>
+        </div>
+        <button class="btn icon-btn" (click)="ultimoRechazo.set(null)" aria-label="Cerrar"><app-icon name="x" [size]="14" /></button>
+      </div>
+    }
+
+    <div class="area" [class.con-panel]="sel() || verBlandas()">
+      <!-- bandeja de pendientes -->
+      <aside class="bandeja card">
+        <div class="card-title"><h2>Pendientes</h2><span class="pill" [class.red]="pendientes().length">{{ pendientes().length }}</span></div>
+        @if (pendientes().length) {
+          <p class="caption" style="margin-bottom:10px">Corrija la causa (grupo, docente o aula) y use «Reintentar», o arrastre la tarjeta al día y la hora en que quiere ubicar una sesión.</p>
+          <div cdkDropList [cdkDropListSortingDisabled]="true" class="stack" style="gap:8px">
+            @for (x of pendientes(); track x.grupoId) {
+              <div class="pend" cdkDrag [cdkDragDisabled]="!editable()" (cdkDragStarted)="inicioPend($event)" (cdkDragMoved)="moviendoPend($event)" (cdkDragEnded)="finPend($event, x)">
+                <div class="row between" style="flex-wrap:nowrap">
+                  <strong>{{ etiquetaPend(x) }}</strong>
+                  <span class="regla" [title]="nombreRegla(x.regla)">{{ x.regla }}</span>
+                </div>
+                <p class="caption">{{ x.causa }}</p>
+                <div class="row between">
+                  <span class="caption">{{ ubicadas(x) }}/{{ requeridas(x) }} sesiones ubicadas</span>
+                  @if (editable()) { <button class="btn btn-sm" (click)="reintentar(x)"><app-icon name="refresh" [size]="13" /> Reintentar</button> }
+                </div>
+                <div *cdkDragPlaceholder class="pend-ph"></div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="muted"><app-icon name="check" [size]="14" /> Todos los grupos abiertos tienen sus sesiones.</p>
+        }
+
+        <div class="leyenda">
+          <div class="label" style="margin:16px 0 6px">Leyenda</div>
+          <div><i class="sw" style="background:repeating-linear-gradient(135deg, rgba(0,0,0,.08) 0 3px, transparent 3px 6px)"></i> Fuera de la franja hábil (R3)</div>
+          <div><i class="sw" style="background:repeating-linear-gradient(135deg, rgba(255,177,16,.35) 0 3px, transparent 3px 6px)"></i> Bloque no asignable</div>
+          <div><i class="sw" style="border:2px solid var(--color-vermillion)"></i> Sesión con violación dura</div>
+          <div class="caption" style="margin-top:6px">Colores por semestre del plan. D = diurna, N = nocturna.</div>
+        </div>
+      </aside>
+
+      <!-- grilla semanal -->
+      <div class="grilla-wrap">
+        @if (modo() !== 'nivel' && !visibles().length) {
+          <div class="card vacio"><p>{{ modo() === 'docente' ? 'Seleccione un docente para ver su semana.' : 'Seleccione un aula para ver su ocupación semanal.' }}</p></div>
+        } @else {
+          <div class="semana" [style.--h.px]="alto">
+            <div class="col-horas">
+              <div class="cab"></div>
+              @for (h of horas(); track h) { <div class="hora">{{ hh(h) }}</div> }
+            </div>
+            @for (d of dias; track d.valor) {
+              <div class="col-dia">
+                <div class="cab">{{ d.nombre }}</div>
+                <div class="cuerpo" #cuerpo [style.height.px]="horas().length * alto">
+                  @for (h of horas(); track h) {
+                    <div class="celda" [class.off]="fuera(d.valor, h)" [class.lunch]="bloq(h)" [style.top.px]="(h - horas()[0]) * alto"></div>
+                  }
+                  @if (destino(); as ds) {
+                    @if (ds.dia === d.valor) {
+                      <div class="destino" [class.invalido]="fuera(ds.dia, ds.inicio) || fuera(ds.dia, ds.inicio + dur() - 1) || bloq(ds.inicio) || bloq(ds.inicio + dur() - 1)"
+                        [style.top.px]="(ds.inicio - horas()[0]) * alto" [style.height.px]="dur() * alto">
+                        <span>{{ rango(ds.inicio, ds.inicio + dur()) }}</span>
+                      </div>
+                    }
+                  }
+                  @for (s of porDia()[d.valor]; track s.id) {
+                    <div
+                      class="ses"
+                      cdkDrag
+                      [cdkDragDisabled]="!editable()"
+                      (cdkDragStarted)="inicioArrastre($event)"
+                      (cdkDragMoved)="moviendo($event)"
+                      (cdkDragEnded)="finArrastre($event, s)"
+                      [class.mala]="malo(s)"
+                      [class.sel]="sel()?.id === s.id"
+                      [class.fija]="!editable()"
+                      [style.top.px]="(s.inicio - horas()[0]) * alto + 2"
+                      [style.height.px]="dur() * alto - 4"
+                      [style.left]="izq(s)"
+                      [style.width]="ancho(s)"
+                      [style.background]="color(s)"
+                      (click)="abrir(s)"
+                      [attr.title]="nombre(s) + ' ' + grupoTxt(s) + '\n' + docente(s.docenteId) + ' · ' + aula(s.aulaId)"
+                      role="button"
+                      tabindex="0"
+                      (keydown.enter)="abrir(s)"
+                    >
+                      <span class="nom">{{ nombre(s) }}</span>
+                      <span class="meta">{{ grupoTxt(s) }} · {{ rango(s.inicio, s.inicio + dur()) }}</span>
+                      @if (modo() !== 'docente') { <span class="meta">{{ docente(s.docenteId) }}</span> }
+                      @if (modo() !== 'aula') { <span class="meta">{{ aula(s.aulaId) }}</span> }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- panel lateral: detalle o blandas -->
+      @if (sel(); as s) {
+        <aside class="panel card">
+          <div class="card-title">
+            <div>
+              <div class="eyebrow">Sesión</div>
+              <h2>{{ cursoDe(s)?.nombre }}</h2>
+            </div>
+            <button class="btn icon-btn" (click)="cerrarDetalle()" aria-label="Cerrar"><app-icon name="x" /></button>
+          </div>
+          <div class="datos">
+            <div><span class="caption">Grupo</span><strong>{{ grupoDe(s)?.codigo }} · {{ grupoDe(s)?.jornada === 'DIURNA' ? 'Diurna' : 'Nocturna' }}</strong></div>
+            <div><span class="caption">Cupo</span><strong>{{ grupoDe(s)?.cupoPlaneado }}</strong></div>
+            <div><span class="caption">Semestre</span><strong>{{ cursoDe(s)?.nivel }}</strong></div>
+            <div><span class="caption">Aula requerida</span><strong>{{ cars(cursoDe(s)?.caracteristicasRequeridas) }}</strong></div>
+          </div>
+
+          @if (selViol().length) {
+            <div class="errores" style="margin:12px 0">
+              @for (x of selViol(); track $index) { <div><span class="regla">{{ x.regla }}</span> {{ x.mensaje }}</div> }
+            </div>
+          }
+
+          <fieldset [disabled]="!editable()">
+            <div class="field"><label>Día</label>
+              <select [(ngModel)]="edDia">@for (d of dias; track d.valor) { <option [ngValue]="d.valor">{{ d.nombre }}</option> }</select>
+            </div>
+            <div class="field"><label>Hora de inicio</label>
+              <select [(ngModel)]="edInicio">@for (h of horasInicio(); track h) { <option [ngValue]="h">{{ rango(h, h + dur()) }}</option> }</select>
+            </div>
+            <div class="field"><label>Docente (habilitados para el curso)</label>
+              <select [(ngModel)]="edDocente">
+                @for (d of docentesPara(s); track d.id) { <option [ngValue]="d.id">{{ d.nombre }} · {{ cortoV(d.tipoVinculacion) }} · {{ store.cargaDocente(v(), d.id) }}/{{ d.horasMaxDocencia }} h</option> }
+              </select>
+            </div>
+            <div class="field"><label>Aula</label>
+              <select [(ngModel)]="edAula">
+                @for (a of aulasOrden(); track a.id) { <option [ngValue]="a.id">{{ a.codigo }} · {{ a.capacidad }} puestos{{ a.caracteristicas.length ? ' · ' + cars(a.caracteristicas) : '' }}</option> }
+              </select>
+            </div>
+          </fieldset>
+          @if (editable()) {
+            <button class="btn btn-primary" style="width:100%;margin-top:14px" (click)="aplicarDetalle()"><app-icon name="check" [size]="16" /> Validar y aplicar</button>
+            <p class="caption" style="margin-top:8px">Cada cambio se valida contra R1–R9 antes de guardarse (CU-11).</p>
+          }
+        </aside>
+      } @else if (verBlandas()) {
+        <aside class="panel card">
+          <div class="card-title">
+            <div><div class="eyebrow">CU-13 · RF-11</div><h2>Restricciones blandas</h2></div>
+            <button class="btn icon-btn" (click)="verBlandas.set(false)" aria-label="Cerrar"><app-icon name="x" /></button>
+          </div>
+          <p class="caption" style="margin-bottom:12px">Son deseables: se reportan pero no bloquean la publicación.</p>
+          @for (g of blandasPorRegla(); track g.regla) {
+            <details class="bl">
+              <summary><span class="regla blanda">{{ g.regla }}</span> {{ g.titulo }} <span class="pill">{{ g.items.length }}</span></summary>
+              <ul>@for (i of g.items; track $index) { <li>{{ i }}</li> }</ul>
+            </details>
+          } @empty {
+            <p class="muted">La versión cumple todas las restricciones blandas.</p>
+          }
+          <div class="label" style="margin:18px 0 6px">Reglas duras evaluadas</div>
+          @for (r of reglas; track r.codigo) {
+            <div class="rd"><span class="regla">{{ r.codigo }}</span> {{ r.nombre }}</div>
+          }
+        </aside>
+      }
+    </div>
+  }
+</div>
