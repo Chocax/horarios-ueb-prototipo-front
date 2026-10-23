@@ -43,14 +43,14 @@ Todos los datos son **de demostración**. El plan de estudios es el de Ingenier�
 - **Aulas:** 86 en los bloques que usa la Facultad. A: pisos 2–4, salas de cómputo (la Facultad está en el piso 3). B: pisos 2–3, salones 1–5 de sillas y tablero y 6–13 de cómputo. I: piso 1 (1–10) y pisos 2–3 (1–4), sillas y tablero. F: pisos 2–3 de cómputo, laboratorios de redes y de seguridad en el piso 2, y pisos 4, 5 y 7 de sillas y tablero. E: piso 1 con mobiliario móvil. G: laboratorios de física (G-LAB).
 - **Horarios generados:** el generador arma patrones como los de la Universidad (lunes-miércoles, martes-jueves, lunes-miércoles-viernes, misma hora), evita cruces entre cursos del mismo semestre y jornada, y compacta el día. La jornada nocturna va de 18:00 a 22:00 y usa el sábado en la mañana. Un grupo nunca tiene dos sesiones el mismo día (R8); en 2.º y 3.º semestre nocturno las sesiones no caben sin un cruce, y el panel de blandas lo reporta (B4).
 - **Parámetros:** L–V 07:00–22:00, sábado 07:00–13:00, bloque no asignable 12:00–13:00, sesiones de 2 h, cupo 40 + 10 % = 44, mínimo 10 inscritos, 1 a 4 sesiones por semana.
-- **Pendientes intencionales:** al generar 2026-2 quedan dos grupos sin ubicar, para probar su resolución: *Programación I G1* (cupo 44 y la sala de cómputo más grande es de 35, R4) e *Investigación tecnológica G2* (diurno: la única docente diurna habilitada ya dicta el G1 y la norma pide dos docentes distintos, R5).
+- **Casos de prueba de la demo:** al generar 2026-2 queda un grupo sin ubicar, *Programación I G1* (cupo 44 y la sala de cómputo más grande es de 35, R4). Además, *Investigación tecnológica* solo tiene una docente diurna habilitada, así que dicta G1 y G2: el generador lo acepta y lo reporta como restricción blanda **B6** (la norma de dos docentes distintos en el día es ideal, no obligatoria).
 - **Docentes con usuario:** Edward Paul Guillén Pinto (noche: Redes I, Redes II, Investigación tecnológica y Seguridad), Cristian Fabián Vanegas (tarde-noche: Fundamentos de programación, Dirección y planeación, Gestión de proyectos y Proyecto núcleo II), Saudiel Orlando López (día, sábados y viernes en la noche: Historia y filosofía, Matemáticas discretas, Gestión de tecnología, Seminario de investigación y Lógica matemática) y Germán Augusto Neuta (viernes y sábados: Legislación y una Electiva profesional). Estas asignaciones se guardan como *docente preferente* del grupo y el generador las intenta primero.
 
 ## 5. Organización del código
 | Carpeta | Contenido |
 |---|---|
 | `src/app/core/models.ts` | Entidades del diagrama de clases y del MER (Periodo, Curso, Docente, Aula, Grupo, Sesión, Versión, Observación, Usuario, Bitácora). |
-| `src/app/core/rules/` | Reglas duras R1–R9, una clase por regla (patrón Specification) y el validador; reglas blandas B1–B5. |
+| `src/app/core/rules/` | Reglas duras R1–R9, una clase por regla (patrón Specification) y el validador; reglas blandas B1–B6. |
 | `src/app/core/scheduling/` | Generador voraz: ubica primero los grupos con menos opciones; lo que no cabe queda pendiente con su causa. |
 | `src/app/core/services/` | StoreService (backend simulado), sesión y avisos. |
 | `src/app/core/import/csv.ts` | Importación CSV todo o nada con errores por fila. |
@@ -143,7 +143,8 @@ _Rol: Coordinador · Cubre: CU-10 · CU-11 · RF-08 · RF-09_
 **Resultado esperado**
 - Se crea la versión 1 (borrador) en milisegundos: unas 287 sesiones y 0 violaciones duras.
 - Cada semestre queda con sus clases en patrones cómodos (lunes-miércoles, martes-jueves) para la jornada diurna y la nocturna.
-- Quedan 2 grupos en la bandeja de **Pendientes**, cada uno con la regla y la causa (R4 y R5 por la norma de dos docentes diurnos).
+- Queda 1 grupo en la bandeja de **Pendientes** con su regla y causa (Programación I G1, R4).
+- En **Restricciones blandas** aparece B6: Investigación tecnológica G1 y G2 con la misma docente.
 
 ### P-08 · Arrastrar a un bloque no válido (R3)
 _Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-10_
@@ -187,7 +188,7 @@ _Rol: Coordinador · Cubre: CU-13 · RF-11_
 1. En el tablero pulse **Restricciones blandas** y despliegue cada grupo.
 
 **Resultado esperado**
-- Se listan los avisos B1–B5 (días consecutivos, huecos del docente, cruces del mismo semestre…).
+- Se listan los avisos B1–B6 (días consecutivos, huecos del docente, cruces del mismo semestre, dos grupos diurnos con el mismo docente…).
 - Son informativos: no impiden publicar.
 
 ### P-12 · Publicación bloqueada
@@ -197,7 +198,7 @@ _Rol: Coordinador · Cubre: CU-14 · RF-12_
 1. Menú **Versiones y publicación** → **Publicar** en la versión 1.
 
 **Resultado esperado**
-- La publicación se bloquea y se listan las causas (los dos grupos pendientes).
+- La publicación se bloquea y se lista la causa (el grupo pendiente). Las restricciones blandas, como B6, no bloquean.
 
 ### P-13 · Resolver el pendiente de Programación I (R4)
 _Rol: Coordinador · Cubre: CU-08 · CU-12 · RF-07_
@@ -211,17 +212,19 @@ _Rol: Coordinador · Cubre: CU-08 · CU-12 · RF-07_
 **Resultado esperado**
 - El grupo queda ubicado con sus 3 sesiones y sale de la bandeja.
 
-### P-14 · Resolver el pendiente de Investigación tecnológica G2 (norma de dos docentes)
-_Rol: Coordinador · Cubre: CU-07 · CU-04 · CU-05_
+### P-14 · Norma de dos docentes en el día (B6) con un docente importado
+_Rol: Coordinador · Cubre: CU-07 · CU-04 · CU-05 · CU-13 · CU-12_
 
 **Pasos**
-1. En **Importar datos** → **Docentes**, pruebe primero *docentes_con_errores.csv* (3 filas con error, no carga nada).
-2. Pruebe *docentes_nuevos.csv* y confirme: entran 2 docentes, uno habilitado para Investigación tecnológica.
-3. En la pestaña **Disponibilidad** pruebe *disponibilidad_con_errores.csv* (3 errores) y luego confirme *disponibilidad_docentes_nuevos.csv*.
-4. En el tablero pulse **Reintentar**.
+1. En el tablero abra **Restricciones blandas** y despliegue **B6**: Mónica Liliana Bernal dicta G1 y G2 de Investigación tecnológica.
+2. En **Importar datos** → **Docentes**, pruebe primero *docentes_con_errores.csv* (3 filas con error, no carga nada).
+3. Pruebe *docentes_nuevos.csv* y confirme: entran 2 docentes; Natalia Ruiz Prieto queda habilitada para Investigación tecnológica.
+4. En la pestaña **Disponibilidad** pruebe *disponibilidad_con_errores.csv* (3 errores) y luego confirme *disponibilidad_docentes_nuevos.csv*.
+5. En el tablero elija **Por curso** → *Investigación tecnológica* → tarjeta **G2**. Abra cada sesión, cambie el docente a *Natalia Ruiz Prieto* y pulse **Validar y aplicar**. (Otra opción: en *Grupos y demanda* ponerla como docente preferente del G2 y regenerar.)
 
 **Resultado esperado**
-- Investigación tecnológica G2 se ubica con la nueva docente (distinta de la del G1, como pide la norma). La bandeja queda vacía: «Todos los grupos abiertos tienen sus sesiones».
+- Antes: el grupo sí quedó programado y B6 lo avisa, sin bloquear la publicación (la norma es ideal, no obligatoria).
+- Después: G2 queda con Natalia, distinta de la docente del G1, y el aviso B6 desaparece.
 
 ### P-15 · Revisión del comité
 _Rol: Comité · Cubre: CU-18 · CU-20 · RF-20 · RF-15_
@@ -401,7 +404,7 @@ _Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-09 · RF-10_
 | RF-08 | CU-10 | P-07 |
 | RF-09 | CU-11 | P-07 a P-10, P-23, P-28 |
 | RF-10 | CU-12 | P-08, P-09, P-10, P-26, P-28 |
-| RF-11 | CU-13 | P-11 |
+| RF-11 | CU-13 | P-11, P-14 |
 | RF-12 | CU-14, CU-15 | P-12, P-16, P-17 |
 | RF-13 | CU-19 | P-18, P-19 |
 | RF-14 | CU-16 | P-21 |

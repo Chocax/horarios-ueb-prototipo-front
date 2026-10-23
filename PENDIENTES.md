@@ -7,12 +7,21 @@ Lo que quedó **a propósito** sin resolver en el prototipo, lo que **asumimos**
 
 ---
 
-## 1. Pendientes intencionales de la demo
+## 1. Casos de prueba de la demo
 
-Al generar la propuesta de **2026-2** quedan dos grupos sin ubicar. Están ahí para mostrar que el generador no se detiene, explica la causa y que el coordinador puede resolverlo.
+Al generar la propuesta de **2026-2** queda **un grupo sin ubicar** y **un aviso B6**. Están ahí para mostrar que el generador no se detiene, explica la causa y que el coordinador puede resolverlo.
 
-| Grupo pendiente | Regla | Por qué queda pendiente | Cómo se resuelve en vivo |
+| Caso | Regla | Qué pasa | Cómo se resuelve en vivo |
 |---|---|---|---|
+| **Programación I G1** (diurno) · pendiente | R4 (dura) | Su cupo planeado es 44 y la sala de cómputo más grande tiene 35 puestos. | *Grupos y demanda* → clic en `G1 · Diurna · 44` → cupo **35** → Guardar → *Tablero* → **Reintentar**. Otra opción: *Importar datos → Aulas* → `aulas_nuevas.csv` (sala F-305 de 45 puestos) → Reintentar. |
+| **Investigación tecnológica G1 y G2** · misma docente | B6 (blanda) | La única docente diurna habilitada (Mónica Liliana Bernal) dicta los dos grupos diurnos. La norma de dos docentes es ideal, no obligatoria: el grupo **sí se programa** y queda el aviso. | *Importar datos → Docentes* → `docentes_nuevos.csv` → Confirmar; pestaña *Disponibilidad* → `disponibilidad_docentes_nuevos.csv` → Confirmar → *Tablero* → **Por curso** → Investigación tecnológica → G2 → en cada sesión cambiar el docente a **Natalia Ruiz Prieto** → *Validar y aplicar*. El aviso B6 desaparece. |
+
+Mientras Programación I G1 esté pendiente, **publicar se bloquea** y lista la causa (prueba de RF-12). El aviso B6 **no** bloquea.
+
+> [!TIP]
+> En el código: el cupo 44 está en `src/app/core/data/seed.ts` (línea con `cupoG = variante === 'actual' && c.nombre === 'Programación I'`), y la única docente diurna de Investigación tecnológica está en `HABILITADOS['Investigación tecnológica y de ingeniería']`. Para que la demo arranque sin pendiente ni aviso, basta con quitar la condición del cupo y agregar un docente diurno a esa lista.
+
+---|---|---|---|
 | **Programación I G1** (diurno) | R4 | Su cupo planeado es 44 y la sala de cómputo más grande tiene 35 puestos. | *Grupos y demanda* → clic en `G1 · Diurna · 44` → cupo **35** → Guardar → *Tablero* → **Reintentar**. Otra opción: *Importar datos → Aulas* → `aulas_nuevas.csv` (sala F-305 de 45 puestos) → Reintentar. |
 | **Investigación tecnológica G2** (diurno) | R5 · norma de dos docentes | La única docente diurna habilitada (Mónica Liliana Bernal) ya dicta el G1, y la norma pide docentes distintos en el día. | *Importar datos → Docentes* → `docentes_nuevos.csv` → Confirmar; pestaña *Disponibilidad* → `disponibilidad_docentes_nuevos.csv` → Confirmar → *Tablero* → **Reintentar**. Otra opción: *Docentes* → habilitar a otro docente diurno para el curso. |
 
@@ -69,7 +78,7 @@ Después de cualquier cambio de parámetros, la propuesta ya generada **no se mo
 
 | # | Cambio | Archivo y lugar |
 |---|---|---|
-| C-1 | Quitar los pendientes intencionales | `seed.ts`: condición del cupo 44 de Programación I y lista `HABILITADOS['Investigación tecnológica y de ingeniería']` |
+| C-1 | Quitar el pendiente intencional y el aviso B6 de la demo | `seed.ts`: condición del cupo 44 de Programación I y lista `HABILITADOS['Investigación tecnológica y de ingeniería']` |
 | C-2 | Cambiar las asignaciones fijas de los docentes con usuario | `seed.ts` → `PREFERENCIAS` (curso, código de grupo, docente) |
 | C-3 | Cambiar quién puede dictar cada curso | `seed.ts` → `HABILITADOS` |
 | C-4 | Agregar o quitar docentes | `seed.ts` → lista `D` (nombre, vinculación, escalafón, disponibilidad, horas opcionales) |
@@ -80,9 +89,10 @@ Después de cualquier cambio de parámetros, la propuesta ya generada **no se mo
 | C-9 | Reglas blandas nuevas | `src/app/core/rules/reglas-blandas.ts` y la lista `REGLAS_BLANDAS` de `core/data/trazabilidad.ts` |
 | C-10 | Valores por defecto de los parámetros | `seed.ts` → `PARAMETROS_POR_DEFECTO` |
 | C-11 | Permitir dos sesiones del mismo grupo el mismo día (p. ej. un bloque de 4 h el sábado) | `reglas-duras.ts` → clase `R8SesionesMaximas` (quitar la parte de «mismo día») y `generador.ts` → `candidatos()` |
+| C-12 | Volver obligatoria la norma de dos docentes en el día (que deje el grupo pendiente en vez de avisar B6) | `generador.ts` → en `generar()`, usar solo la primera lista de `niveles` (docentes que no dictan otro grupo diurno del curso) |
 
 > [!IMPORTANT]
-> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (hoy está en 6; pasarlo a 7) para que los navegadores que ya abrieron la demo descarten los datos viejos.
+> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (hoy está en 7; pasarlo a 8) para que los navegadores que ya abrieron la demo descarten los datos viejos.
 
 Flujo para publicar un cambio: `git add .` → `git commit -m "fix: …"` → `git push` → Vercel lo despliega solo en uno o dos minutos.
 

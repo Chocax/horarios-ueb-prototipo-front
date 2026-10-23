@@ -35,7 +35,7 @@ export const MATRIZ_RF: FilaRF[] = [
   { rf: 'RF-05', titulo: 'Cursos con nivel, sesiones y características', cu: 'CU-06', pantallas: [P.cursos], prueba: 'Curso con cómputo solo va a laboratorios (R4).' },
   { rf: 'RF-06', titulo: 'Aulas con capacidad y características', cu: 'CU-06', pantallas: [P.aulas], prueba: 'Aula de 30 rechaza grupo de 40 (R4).' },
   { rf: 'RF-07', titulo: 'Creación de grupos con cupo planeado', cu: 'CU-08', pantallas: [P.grupos], prueba: 'Cupo 44 se acepta, 45 se rechaza (R9).' },
-  { rf: 'RF-08', titulo: 'Generación de propuesta con pendientes y causa', cu: 'CU-10', pantallas: [P.tablero], prueba: 'Generar: 2 pendientes con causa, 0 violaciones.' },
+  { rf: 'RF-08', titulo: 'Generación de propuesta con pendientes y causa', cu: 'CU-10', pantallas: [P.tablero], prueba: 'Generar: 1 pendiente con su causa (R4), 0 violaciones; la norma de dos docentes aparece como B6.' },
   { rf: 'RF-09', titulo: 'Validación de restricciones duras R1–R9', cu: 'CU-11', pantallas: [P.tablero, P.grupos, P.versiones], prueba: 'Cada rechazo nombra la regla violada.' },
   { rf: 'RF-10', titulo: 'Ajuste por arrastrar y soltar con rechazo inmediato', cu: 'CU-12', pantallas: [P.tablero], prueba: 'Arrastrar a 12:00 o a un choque de docente: vuelve y muestra R3/R1.' },
   { rf: 'RF-11', titulo: 'Reporte de restricciones blandas B1–B6', cu: 'CU-13', pantallas: [P.tablero], prueba: 'Panel de blandas; no bloquea la publicación.' },

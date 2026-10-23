@@ -126,7 +126,7 @@ export function evaluarBlandas(v: VersionHorario, p: ParametrosProgramacion, cat
       out.push({
         regla: 'B6',
         titulo: 'Dos grupos diurnos con el mismo docente',
-        detalle: `${cat.curso(cursoId)?.nombre}: ${cat.docente(docId)?.nombre} dicta los grupos diurnos ${[...grupos].sort().join(' y ')}; la norma pide docentes distintos.`,
+        detalle: `${cat.curso(cursoId)?.nombre}: ${cat.docente(docId)?.nombre} dicta los grupos diurnos ${[...grupos].sort().join(' y ')}; lo ideal es que los dicten docentes distintos (se acepta cuando no hay otro docente disponible).`,
       });
     }
   }

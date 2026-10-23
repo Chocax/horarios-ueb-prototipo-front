@@ -37,7 +37,9 @@ interface Candidato {
  *  2. Para cada grupo arma candidatos "patrón de días + misma hora" (L-X, M-J, X-V, L-X-V…), como se
  *     programan las clases en la práctica, y les asigna un costo: días seguidos (B1), sábado en jornada
  *     diurna, huecos y cruces en el horario del semestre y la jornada (B4), horas menos deseadas.
- *  3. Toma el candidato más barato que el validador R1–R9 aprueba, con el docente menos cargado (B3).
+ *  3. Toma el candidato más barato que el validador R1–R9 aprueba, con el docente menos cargado (B3). En la
+ *     jornada diurna prefiere docentes que no dicten otro grupo diurno del curso (norma del Programa, B6);
+ *     si no hay ninguno, repite docente y la versión lo reporta como blanda.
  *  4. Si ningún patrón cabe, intenta sesión por sesión; si tampoco, el grupo queda PENDIENTE con su causa.
  */
 export class GeneradorVoraz implements GeneradorHorario {
@@ -117,60 +119,57 @@ export class GeneradorVoraz implements GeneradorHorario {
         causa('R5', `Ningún docente habilitado para ${curso.nombre} tiene disponibilidad en la jornada ${g.jornada.toLowerCase()}.`);
         continue;
       }
-      const ocupados = g.jornada === 'DIURNA' ? docentesDiurnosDelCurso(g) : new Set<string>();
-      const docs = todos.filter((d) => !ocupados.has(d.id));
-      if (!docs.length) {
-        causa(
-          'R5',
-          `Norma de dos docentes en el día: el único docente diurno habilitado para ${curso.nombre} (${todos.map((d) => d.nombre).join(', ')}) ya dicta otro grupo diurno del curso.`,
-        );
-        continue;
-      }
       const aulas = aulasAptas(g);
       if (!aulas.length) {
         const req = curso.caracteristicasRequeridas.length ? ' con ' + curso.caracteristicasRequeridas.map((x) => nombreCaracteristica(x).toLowerCase()).join(' y ') : '';
         causa('R4', `No hay aula${req} con capacidad para ${g.cupoPlaneado} estudiantes.`);
         continue;
       }
-      const conHoras = docs.filter((d) => d.horasMaxDocencia - (carga.get(d.id) ?? 0) >= n * dur);
+      const conHoras = todos.filter((d) => d.horasMaxDocencia - (carga.get(d.id) ?? 0) >= n * dur);
       if (!conHoras.length) {
-        causa('R7', `Los docentes habilitados (${docs.map((d) => `${d.nombre}: ${carga.get(d.id) ?? 0}/${d.horasMaxDocencia} h`).join('; ')}) no tienen horas libres para ${n * dur} h más.`);
+        causa('R7', `Los docentes habilitados (${todos.map((d) => `${d.nombre}: ${carga.get(d.id) ?? 0}/${d.horasMaxDocencia} h`).join('; ')}) no tienen horas libres para ${n * dur} h más.`);
         continue;
       }
       // menor ocupación relativa primero (equilibra la carga, B3)
       conHoras.sort((a, b) => (carga.get(a.id) ?? 0) / a.horasMaxDocencia - (carga.get(b.id) ?? 0) / b.horasMaxDocencia || a.id.localeCompare(b.id));
 
+      // Norma del Programa (restricción blanda B6): los grupos diurnos de un curso los dictan docentes distintos.
+      // Primero se buscan docentes que no dicten otro grupo diurno del curso; si ninguno sirve, se acepta repetir
+      // docente y la versión lo reporta como B6 (no bloquea).
+      const ocupados = g.jornada === 'DIURNA' ? docentesDiurnosDelCurso(g) : new Set<string>();
+      const niveles = [conHoras.filter((d) => !ocupados.has(d.id)), conHoras.filter((d) => ocupados.has(d.id))].filter((l) => l.length);
+
+      const ya = () => [...fijas, ...sesiones];
+      const buscar = (lista: Docente[]): { costo: number; sesiones: Sesion[]; docente: Docente } | null => {
+        let mejor: { costo: number; sesiones: Sesion[]; docente: Docente } | null = null;
+        // asignación acordada con el docente: se intenta primero
+        const preferido = g.docentePreferido ? lista.find((d) => d.id === g.docentePreferido) : undefined;
+        if (preferido) {
+          const r = this.mejorPatron(g, preferido, n, aulas, ocupacion, ya(), e);
+          if (r) return { ...r, docente: preferido };
+        }
+        // si no, se evalúan los tres docentes menos cargados y se elige el mejor horario
+        for (const d of lista.slice(0, 3)) {
+          const r = this.mejorPatron(g, d, n, aulas, ocupacion, ya(), e);
+          // a igualdad de horario se prefiere al docente con menos carga relativa (B3)
+          const costo = r ? r.costo + ((carga.get(d.id) ?? 0) / d.horasMaxDocencia) * 8 : Infinity;
+          if (r && (!mejor || costo < mejor.costo)) mejor = { ...r, costo, docente: d };
+        }
+        if (mejor) return mejor;
+        for (const d of lista.slice(3)) {
+          const r = this.mejorPatron(g, d, n, aulas, ocupacion, ya(), e);
+          if (r) return { ...r, docente: d };
+        }
+        for (const d of lista) {
+          const r = this.sesionPorSesion(g, d, n, aulas, ya(), e, ocupacion);
+          if (r) return { costo: 999, sesiones: r, docente: d };
+        }
+        return null;
+      };
       let mejor: { costo: number; sesiones: Sesion[]; docente: Docente } | null = null;
-      // asignación acordada con el docente: se intenta primero
-      const preferido = g.docentePreferido ? conHoras.find((d) => d.id === g.docentePreferido) : undefined;
-      if (preferido) {
-        const r = this.mejorPatron(g, preferido, n, aulas, ocupacion, [...fijas, ...sesiones], e);
-        if (r) mejor = { ...r, docente: preferido };
-      }
-      // si no, se evalúan los tres docentes menos cargados y se elige el mejor horario
-      for (const d of mejor ? [] : conHoras.slice(0, 3)) {
-        const r = this.mejorPatron(g, d, n, aulas, ocupacion, [...fijas, ...sesiones], e);
-        // a igualdad de horario se prefiere al docente con menos carga relativa (B3)
-        const costo = r ? r.costo + ((carga.get(d.id) ?? 0) / d.horasMaxDocencia) * 8 : Infinity;
-        if (r && (!mejor || costo < mejor.costo)) mejor = { ...r, costo, docente: d };
-      }
-      if (!mejor) {
-        for (const d of conHoras.slice(3)) {
-          const r = this.mejorPatron(g, d, n, aulas, ocupacion, [...fijas, ...sesiones], e);
-          if (r) {
-            mejor = { ...r, docente: d };
-            break;
-          }
-        }
-      }
-      if (!mejor) {
-        for (const d of conHoras) {
-          const r = this.sesionPorSesion(g, d, n, aulas, [...fijas, ...sesiones], e, ocupacion);
-          if (r) {
-            mejor = { costo: 999, sesiones: r, docente: d };
-            break;
-          }
-        }
+      for (const lista of niveles) {
+        mejor = buscar(lista);
+        if (mejor) break;
       }
       if (!mejor) {
         causa('R6', `No hay franja común entre la disponibilidad de ${conHoras.map((d) => d.nombre).join(', ')} y las aulas libres (${g.jornada.toLowerCase()}).`);

@@ -364,7 +364,7 @@ export class StoreService {
     const g = this.catalogo().grupo(grupoId)!;
     const p = this.parametrosDe(v);
     const previas = v.sesiones.filter((s) => s.grupoId === grupoId);
-    // norma: en el día, docentes distintos para los grupos del mismo curso
+    // norma del Programa (blanda, B6): en el día se prefieren docentes distintos para los grupos del mismo curso
     const otrosDiurnos = new Set(
       g.jornada === 'DIURNA'
         ? v.sesiones.filter((s) => s.grupoId !== grupoId && this.catalogo().grupo(s.grupoId)?.cursoId === g.cursoId && this.catalogo().grupo(s.grupoId)?.jornada === 'DIURNA').map((s) => s.docenteId)
@@ -372,7 +372,9 @@ export class StoreService {
     );
     const docentesCand = previas[0]?.docenteId
       ? [this.catalogo().docente(previas[0].docenteId)!]
-      : this.estado().docentes.filter((d) => d.habilitaciones.includes(g.cursoId) && !otrosDiurnos.has(d.id));
+      : this.estado()
+          .docentes.filter((d) => d.habilitaciones.includes(g.cursoId))
+          .sort((a, b) => Number(otrosDiurnos.has(a.id)) - Number(otrosDiurnos.has(b.id)));
     const aulasCand = [...this.estado().aulas].sort((a, b) => a.capacidad - b.capacidad);
     let mejor: Violacion[] | null = null;
     if (!docentesCand.length) docentesCand.push(null as any);

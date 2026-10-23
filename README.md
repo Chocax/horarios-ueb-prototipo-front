@@ -136,7 +136,7 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
 > - **En la noche**, cada curso abre **un grupo (G3)**; solo cuando la demanda lo justifica abre un segundo (**G4**, como Matemáticas básicas y Cálculo diferencial). Nunca más de dos.
 > - La **jornada diurna** usa 07–09, 09–11, 14–16 y 16–18 de lunes a viernes; la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana**.
 > - **Un grupo tiene como máximo una sesión por día** (regla dura R8): nunca dos bloques de la misma materia el mismo día, tampoco el sábado.
-> - El generador respeta la norma de dos docentes y, si no puede cumplirla, deja el grupo **pendiente** con la causa. Si alguien la rompe a mano en el tablero, aparece como restricción blanda **B6**.
+> - La norma de **dos docentes distintos en el día es ideal, no obligatoria**: casi siempre se cumple, pero hay casos en que no hay otro docente. El generador busca primero un docente distinto y, si no lo hay, repite docente y la versión lo reporta como restricción blanda **B6** (no bloquea la publicación).
 
 ### Docentes con usuario en la demo (asignaciones acordadas)
 
@@ -193,7 +193,7 @@ flowchart TD
     I -- Nada cabe --> P
 ```
 
-El resultado con los datos de demostración: **~287 sesiones en milisegundos, 0 violaciones duras** y 2 pendientes intencionales para probar su resolución (*Programación I G1* por R4 y *Investigación tecnológica G2* por la norma de dos docentes). Así queda, por ejemplo, el 6.º semestre:
+El resultado con los datos de demostración: **~289 sesiones en milisegundos, 0 violaciones duras** y 1 pendiente intencional para probar su resolución (*Programación I G1* por R4). *Investigación tecnológica* queda con la misma docente en G1 y G2 y aparece como aviso **B6**. Así queda, por ejemplo, el 6.º semestre:
 
 <p align="center">
   <img src="docs/img/tablero-semestre-6.png" alt="Horario del sexto semestre en jornada diurna y nocturna" width="90%">

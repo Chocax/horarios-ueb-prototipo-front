@@ -213,7 +213,7 @@ const D: DefDocente[] = [
   ['Fabián Andrés Gómez', 'TRES_CUARTOS', 'Instructor', soloNoche], // (*)
   ['Héctor Julio Vargas', 'TRES_CUARTOS', 'Asistente', soloNoche], // (*)
   ['Javier Andrés Almeida Moreno', 'TIEMPO_COMPLETO', 'Asistente', soloNoche],
-  // Única docente diurna habilitada en Investigación tecnológica: la norma de dos docentes deja un grupo pendiente
+  // Única docente diurna habilitada en Investigación tecnológica: dicta G1 y G2 y la versión lo reporta como B6
   ['Mónica Liliana Bernal', 'TIEMPO_COMPLETO', 'Asociado', diurno], // (*)
   ['Manuel Fernando Torres', 'MEDIO_TIEMPO', 'Asociado', soloNoche],
   ['Camilo Gutiérrez Sierra', 'MEDIO_TIEMPO', 'Instructor', soloNoche],
@@ -228,7 +228,7 @@ const D: DefDocente[] = [
 /**
  * Cursos que puede orientar cada docente, por curso. Norma del programa: en el día cada curso abre al menos
  * dos grupos con docentes distintos, así que cada curso tiene dos o más docentes con disponibilidad diurna
- * (salvo el caso de prueba de Investigación tecnológica) y al menos uno con disponibilidad nocturna.
+ * (salvo Investigación tecnológica, caso de prueba del aviso B6) y al menos uno con disponibilidad nocturna.
  */
 const HABILITADOS: Record<string, string[]> = {
   'Matemáticas básicas': ['José Luis Espinosa Reina', 'Angie Alejandra Olarte', 'Luz Maricel Elorreaga', 'Ricardo Andrés Montoya', 'Diana Patricia Velandia'],
@@ -417,7 +417,7 @@ export function construirPeriodos(): PeriodoAcademico[] {
   return [p(2026, 1, 'CERRADO'), p(2026, 2, 'ABIERTO')];
 }
 
-export const VERSION_ESQUEMA = 6;
+export const VERSION_ESQUEMA = 7;
 
 /** Estado inicial sin versiones; el store genera y publica el horario histórico de 2026-1 al arrancar. */
 export function estadoInicial(): EstadoApp {
