@@ -2,17 +2,18 @@
 // RF-08, RF-09, RF-10, RF-11
 import { CdkDrag, CdkDragEnd, CdkDragMove, CdkDragPlaceholder, CdkDragStart, CdkDropList } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal, viewChildren } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Caracteristica, Dia, DIAS, GrupoPendiente, Sesion, Violacion } from '../../core/models';
 import { REGLAS_DURAS } from '../../core/rules/reglas-duras';
 import { Resultado, StoreService } from '../../core/services/store.service';
 import { ToastService } from '../../core/services/toast.service';
 import { cortoVinculacion, fechaCorta, hh, nombreCaracteristica, rango } from '../../core/util';
 import { Icon } from '../../shared/icon';
-import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, nombreCorto } from '../../shared/semana';
+import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, mapaColores, nombreCorto } from '../../shared/semana';
 
-type Modo = 'nivel' | 'docente' | 'aula';
+type Modo = 'nivel' | 'curso' | 'docente' | 'aula';
 
 @Component({
   selector: 'app-tablero',
@@ -24,6 +25,7 @@ type Modo = 'nivel' | 'docente' | 'aula';
 export class Tablero {
   protected readonly store = inject(StoreService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly dias = DIAS;
   protected readonly alto = ALTO_HORA;
@@ -52,7 +54,37 @@ export class Tablero {
   protected readonly jornada = signal<'' | 'DIURNA' | 'NOCTURNA'>('');
   protected readonly docenteId = signal('');
   protected readonly aulaId = signal('');
+  protected readonly cursoId = signal('');
+  /** '' = todos los grupos del curso */
+  protected readonly grupoId = signal('');
   protected readonly verBlandas = signal(false);
+
+  constructor() {
+    // /tablero?curso=…&grupo=… abre directamente la vista de un curso (desde Grupos y demanda)
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+      if (!q.get('curso')) return;
+      this.modo.set('curso');
+      this.cursoId.set(q.get('curso')!);
+      this.grupoId.set(q.get('grupo') ?? '');
+    });
+  }
+
+  /** Cursos con grupos abiertos en el periodo, por semestre. */
+  protected readonly cursosConGrupos = computed(() => {
+    const ids = new Set(this.store.gruposAbiertos().map((g) => g.cursoId));
+    return this.store.cursos().filter((c) => ids.has(c.id)).sort((a, b) => a.nivel - b.nivel || a.nombre.localeCompare(b.nombre));
+  });
+  protected readonly gruposDelCurso = computed(() =>
+    this.store.gruposAbiertos().filter((g) => g.cursoId === this.cursoId()).sort((a, b) => a.codigo.localeCompare(b.codigo)),
+  );
+  elegirCurso(id: string) {
+    this.cursoId.set(id);
+    this.grupoId.set('');
+  }
+  verCurso(id: string) {
+    this.modo.set('curso');
+    this.elegirCurso(id);
+  }
 
   protected readonly docentesConClase = computed(() => {
     const ids = new Set(this.v()?.sesiones.map((s) => s.docenteId));
@@ -73,8 +105,52 @@ export class Tablero {
           return !!this.docenteId() && s.docenteId === this.docenteId();
         case 'aula':
           return !!this.aulaId() && s.aulaId === this.aulaId();
+        case 'curso':
+          return !!this.cursoId() && g?.cursoId === this.cursoId() && (!this.grupoId() || s.grupoId === this.grupoId());
       }
     });
+  });
+
+  // ---------------------------------------------------------------- colores
+  /** Por semestre: un color por curso. Por curso: un color por grupo. Docente/aula: un color por curso. */
+  protected readonly colores = computed(() => {
+    const cat = this.store.catalogo();
+    if (this.modo() === 'curso') return mapaColores(this.gruposDelCurso().map((g) => g.id));
+    const cursos = [...new Set(this.visibles().map((s) => cat.grupo(s.grupoId)?.cursoId ?? ''))].sort((a, b) =>
+      (cat.curso(a)?.nombre ?? '').localeCompare(cat.curso(b)?.nombre ?? ''),
+    );
+    return mapaColores(cursos);
+  });
+  /** Leyenda de la vista actual: qué color es cada curso (o cada grupo en la vista por curso). */
+  protected readonly leyendaColores = computed(() => {
+    const cat = this.store.catalogo();
+    const v = this.v();
+    const dur = this.dur();
+    if (this.modo() === 'curso') {
+      return this.gruposDelCurso().map((g) => {
+        const ses = v?.sesiones.filter((s) => s.grupoId === g.id) ?? [];
+        const doc = [...new Set(ses.map((s) => this.docente(s.docenteId)))].join(', ');
+        const dias = ses
+          .slice()
+          .sort((a, b) => a.dia - b.dia)
+          .map((s) => `${this.dias[s.dia].corto} ${rango(s.inicio, s.inicio + dur)}`)
+          .join(' · ');
+        return {
+          id: g.id,
+          color: this.colores().get(g.id) ?? '#eee',
+          titulo: `${g.codigo} · ${g.jornada === 'DIURNA' ? 'diurna' : 'nocturna'}`,
+          detalle: ses.length ? `${dias}${doc ? ' — ' + doc : ''}` : 'Pendiente: sin sesiones ubicadas',
+          curso: g.cursoId,
+        };
+      });
+    }
+    return [...this.colores().entries()].map(([cursoId, color]) => ({
+      id: cursoId,
+      color,
+      titulo: cat.curso(cursoId)?.nombre ?? '',
+      detalle: '',
+      curso: cursoId,
+    }));
   });
   protected readonly lanes = computed(() => carriles(this.visibles(), this.dur()));
   protected readonly porDia = computed(() => {
@@ -120,7 +196,9 @@ export class Tablero {
   };
   docente = (id: string | null) => (id ? this.cat().docente(id)?.nombre ?? '' : 'Sin docente');
   aula = (id: string | null) => (id ? this.cat().aula(id)?.codigo ?? '' : 'Sin aula');
-  color = (s: Sesion) => `var(--nivel-${Math.min(9, this.cursoDe(s)?.nivel ?? 1)})`;
+  color = (s: Sesion) =>
+    (this.modo() === 'curso' ? this.colores().get(s.grupoId) : this.colores().get(this.grupoDe(s)?.cursoId ?? '')) ??
+    `var(--nivel-${Math.min(9, this.cursoDe(s)?.nivel ?? 1)})`;
   malo = (s: Sesion) => this.conViolacion().has(s.id);
   fuera = (d: number, h: number) => fueraDeFranja(this.p(), d, h);
   bloq = (h: number) => bloqueado(this.p(), h);
@@ -183,7 +261,7 @@ export class Tablero {
       this.toast.ok('Cambio guardado', [`${this.nombre(nueva)} ${this.grupoTxt(nueva)}: ${this.dias[nueva.dia].nombre} ${rango(nueva.inicio, nueva.inicio + this.dur())}, ${this.aula(nueva.aulaId)}`]);
     } else {
       this.selViol.set(r.violaciones ?? []);
-      this.rechazo(r);
+      this.rechazo(r, `${this.nombre(s)} ${this.grupoTxt(s)} → ${this.dias[Number(this.edDia)].nombre} ${rango(Number(this.edInicio), Number(this.edInicio) + this.dur())}`);
     }
   }
 

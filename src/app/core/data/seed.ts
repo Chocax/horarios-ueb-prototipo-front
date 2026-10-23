@@ -154,6 +154,8 @@ const diurno = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 7, 
 const diurnoSinSabado = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 7, fin: 18 }));
 const nocheEntreSemana = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 18, fin: 22 }));
 const viernesYSabado = (): BloqueDisponible[] => [{ dia: 4, inicio: 7, fin: 22 }, SAB];
+/** De día entre semana y sábado, más el viernes en la noche (para un grupo nocturno: viernes + sábado). */
+const diurnoYViernesNoche = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 7, fin: dia === 4 ? 22 : 18 })), SAB];
 
 /** [nombre, vinculación, escalafón, disponibilidad, horas máximas si difieren de la vinculación] */
 type DefDocente = [string, Vinculacion, string, () => BloqueDisponible[], number?];
@@ -163,7 +165,7 @@ const D: DefDocente[] = [
   // Docentes con usuario en la demo
   ['Edward Paul Guillén Pinto', 'TIEMPO_COMPLETO', 'Asociado', nocheEntreSemana],
   ['Cristian Fabián Vanegas', 'TIEMPO_COMPLETO', 'Asociado', tardeNocheSinSabado],
-  ['Saudiel Orlando López', 'TIEMPO_COMPLETO', 'Asistente', diurno, 18],
+  ['Saudiel Orlando López', 'TIEMPO_COMPLETO', 'Asistente', diurnoYViernesNoche, 18],
   ['Germán Augusto Neuta', 'MEDIO_TIEMPO', 'Asistente', viernesYSabado],
   // Ciencias básicas
   ['José Luis Espinosa Reina', 'TIEMPO_COMPLETO', 'Asociado', todoElDia],
@@ -415,7 +417,7 @@ export function construirPeriodos(): PeriodoAcademico[] {
   return [p(2026, 1, 'CERRADO'), p(2026, 2, 'ABIERTO')];
 }
 
-export const VERSION_ESQUEMA = 5;
+export const VERSION_ESQUEMA = 6;
 
 /** Estado inicial sin versiones; el store genera y publica el horario histórico de 2026-1 al arrancar. */
 export function estadoInicial(): EstadoApp {

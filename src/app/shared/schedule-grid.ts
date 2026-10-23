@@ -3,12 +3,19 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { DIAS, ParametrosProgramacion, Sesion } from '../core/models';
 import { StoreService } from '../core/services/store.service';
 import { hh, rango } from '../core/util';
-import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, nombreCorto } from './semana';
+import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, mapaColores, nombreCorto } from './semana';
 
 @Component({
   selector: 'app-schedule-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (leyenda().length > 1) {
+      <div class="leyenda-grid">
+        @for (x of leyenda(); track x.id) {
+          <span class="lg"><i [style.background]="x.color"></i>{{ x.texto }}</span>
+        }
+      </div>
+    }
     <div class="semana" [style.--h.px]="alto">
       <div class="col-horas">
         <div class="cab"></div>
@@ -51,6 +58,14 @@ import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, nombreCorto
     </div>
   `,
   styleUrl: './semana.scss',
+  styles: [
+    `
+      .leyenda-grid { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-60); }
+      .lg { display: inline-flex; align-items: center; gap: 6px; }
+      .lg i { width: 14px; height: 12px; border-radius: 3px; border: 1px solid var(--hairline); display: inline-block; }
+      @media print { .leyenda-grid { font-size: 10px; } }
+    `,
+  ],
 })
 export class ScheduleGrid {
   private readonly store = inject(StoreService);
@@ -93,10 +108,27 @@ export class ScheduleGrid {
   };
   docente = (s: Sesion) => (s.docenteId ? this.cat().docente(s.docenteId)?.nombre ?? '' : 'Sin docente');
   aula = (s: Sesion) => (s.aulaId ? this.cat().aula(s.aulaId)?.codigo ?? '' : 'Sin aula');
+  /** Vista por curso: un color por grupo. Las demás vistas: un color por curso. */
+  private readonly porGrupo = computed(() => this.modo() === 'curso');
+  protected readonly colores = computed(() => {
+    const cat = this.cat();
+    const claves = this.sesiones().map((s) => (this.porGrupo() ? s.grupoId : cat.grupo(s.grupoId)?.cursoId ?? ''));
+    const nombre = (k: string) => (this.porGrupo() ? cat.grupo(k)?.codigo ?? '' : cat.curso(k)?.nombre ?? '');
+    return mapaColores([...new Set(claves)].sort((a, b) => nombre(a).localeCompare(nombre(b))));
+  });
+  protected readonly leyenda = computed(() => {
+    const cat = this.cat();
+    return [...this.colores().entries()].map(([id, color]) => {
+      if (!this.porGrupo()) return { id, color, texto: cat.curso(id)?.nombre ?? '' };
+      const g = cat.grupo(id);
+      const ses = this.sesiones().filter((s) => s.grupoId === id);
+      const doc = [...new Set(ses.map((s) => this.docente(s)))].join(', ');
+      return { id, color, texto: `${g?.codigo} ${g?.jornada === 'DIURNA' ? 'diurna' : 'nocturna'} · ${doc}` };
+    });
+  });
   color = (s: Sesion) => {
-    const g = this.cat().grupo(s.grupoId);
-    const n = this.cat().curso(g?.cursoId ?? '')?.nivel ?? 1;
-    return `var(--nivel-${Math.min(9, n)})`;
+    const k = this.porGrupo() ? s.grupoId : this.cat().grupo(s.grupoId)?.cursoId ?? '';
+    return this.colores().get(k) ?? 'var(--nivel-1)';
   };
   titulo = (s: Sesion) => `${this.curso(s)} ${this.grupo(s)}\n${this.docente(s)} · ${this.aula(s)}`;
 }

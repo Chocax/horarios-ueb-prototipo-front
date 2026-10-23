@@ -2,6 +2,14 @@ import { ParametrosProgramacion, Sesion } from '../core/models';
 
 export const ALTO_HORA = 46;
 
+/** Paleta para distinguir cursos o grupos dentro de una misma vista (tonos claros, texto oscuro legible). */
+export const PALETA = ['#dcebfd', '#ffe3b0', '#fcd5cd', '#d4f0dc', '#e8dcfa', '#fbe0ef', '#d5f1f2', '#f2ecc6', '#e3e6ee', '#ffd9b8', '#d9e8c8', '#f5d6e0'];
+
+/** Asigna a cada clave un color estable según su posición en la lista ordenada. */
+export function mapaColores(claves: string[]): Map<string, string> {
+  return new Map([...new Set(claves)].map((k, i) => [k, PALETA[i % PALETA.length]]));
+}
+
 export function horasGrilla(p: ParametrosProgramacion): number[] {
   const ini = Math.min(p.franjaLunesViernes.inicio, p.franjaSabado.inicio);
   const fin = Math.max(p.franjaLunesViernes.fin, p.franjaSabado.fin);

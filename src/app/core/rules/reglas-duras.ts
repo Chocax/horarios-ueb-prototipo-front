@@ -148,11 +148,21 @@ export class R7CargaMaxima implements ReglaDura {
 
 export class R8SesionesMaximas implements ReglaDura {
   readonly codigo = 'R8';
-  readonly nombre = 'No supera las sesiones semanales máximas';
+  readonly nombre = 'Frecuencia del grupo: sesiones semanales máximas y una sola sesión por día';
   evaluar(ctx: ContextoValidacion): Violacion | null {
-    const n = ctx.otras.filter((s) => s.grupoId === ctx.grupo.id).length + 1;
-    return n > ctx.parametros.sesionesMaximas
-      ? { regla: this.codigo, mensaje: `El grupo ${ctx.grupo.codigo} quedaría con ${n} sesiones y el máximo es ${ctx.parametros.sesionesMaximas}.` }
+    const delGrupo = ctx.otras.filter((s) => s.grupoId === ctx.grupo.id);
+    const n = delGrupo.length + 1;
+    // mover una sesión no cambia el número de sesiones: el tope solo se revisa al agregar una
+    if (ctx.esNueva && n > ctx.parametros.sesionesMaximas) {
+      return { regla: this.codigo, mensaje: `El grupo ${ctx.grupo.codigo} quedaría con ${n} sesiones y el máximo es ${ctx.parametros.sesionesMaximas}.` };
+    }
+    // un grupo no ve dos sesiones de la misma materia el mismo día
+    const mismoDia = delGrupo.find((s) => s.dia === ctx.dia);
+    return mismoDia
+      ? {
+          regla: this.codigo,
+          mensaje: `${ctx.curso.nombre} ${ctx.grupo.codigo} ya tiene clase el ${nombreDiaMin(ctx.dia)} (${rango(mismoDia.inicio, mismoDia.inicio + ctx.parametros.duracionSesion)}); un grupo solo puede tener una sesión por día.`,
+        }
       : null;
   }
 }

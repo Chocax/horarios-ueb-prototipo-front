@@ -34,7 +34,6 @@ export class ValidadorReglas {
     };
     const out: Violacion[] = [];
     for (const r of this.reglas) {
-      if (r.codigo === 'R8' && !ctx.esNueva) continue; // mover una sesión no cambia el número de sesiones
       const v = r.evaluar(ctx);
       if (v) out.push(v);
     }

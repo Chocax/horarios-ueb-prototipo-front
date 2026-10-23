@@ -32,7 +32,7 @@ Mientras estén pendientes, **publicar se bloquea** y lista las dos causas (prue
 | S-3 | **Bloque F, piso 4** = salones de sillas y tablero (no se especificó) | `construirAulas()` en `seed.ts` | En *Aulas* editar F-401 a F-404 y marcar *Equipos de cómputo* si son salas |
 | S-4 | **Bloque E** = salones con mobiliario móvil (ahí van Estructuras del pensamiento, Proyecto núcleo, Dirección y planeación, etc.) | `construirAulas()` | En *Aulas* quitar o poner la característica |
 | S-5 | Capacidades de las aulas (30–45 puestos) son estimadas | `construirAulas()` | En *Aulas* editar la capacidad, o importar un CSV con las reales |
-| S-6 | Jornada nocturna = 18:00–22:00 de lunes a viernes + sábado 7:00–11:00 | Generador (`horasLV` y `horasSab`) | Ver el cambio C-6 |
+| S-6 | Jornada nocturna = 18:00–22:00 de lunes a viernes + sábado en la mañana, con una sola sesión del grupo por día | Generador (`horasLV` y `horasSab`) | Ver el cambio C-6 |
 | S-7 | Segundo grupo nocturno solo en Matemáticas básicas y Cálculo diferencial | `DOS_GRUPOS_NOCHE` en `seed.ts` | Agregar el nombre del curso a la lista, o crear el G4 en *Grupos y demanda* con **+** |
 | S-8 | Demanda estimada por curso es ficticia | Ofertas en `seed.ts` | *Grupos y demanda* → columna Demanda, o *Importar → Cursos* con la columna `demanda` |
 | S-9 | Vinculación, escalafón, disponibilidad y correos de los docentes son ficticios; 23 nombres son inventados (marcados con `// (*)` en `seed.ts`) | `seed.ts` | *Docentes* o *Importar → Docentes / Disponibilidad* |
@@ -56,6 +56,9 @@ Si el tercero del video pide algo, la mayoría se hace desde la misma app. Ideas
 | «Que este grupo lo dé tal profe» | *Grupos y demanda* → clic en el grupo → *Docente preferente* → Regenerar | Asignación acordada |
 | «Este grupo tiene pocos inscritos» | *Inscritos y cierre* → escribir el número → *Cerrar grupo* | RF-21 |
 | «Quiero el horario en Excel» | *Consultar horario* → **CSV completo** | RF-13 |
+| «Muéstrenme solo una materia y sus grupos» | *Tablero* → **Por curso** (o clic en el nombre del curso arriba de la grilla) → clic en un grupo para aislarlo | RF-10 y RF-19 |
+| «¿Qué horario tiene este grupo?» | *Grupos y demanda* → clic en el grupo: ficha con días, horas, aula y docente | RF-07 |
+| «Pongan las dos clases del grupo el mismo día» | Se rechaza con **R8** (un grupo solo tiene una sesión por día) | Regla dura del Programa |
 | «Que el comité diga que hay que cambiar algo» | Entrar como comité → *Revisión* → *Requiere ajustes* + observación | RF-20 |
 
 Después de cualquier cambio de parámetros, la propuesta ya generada **no se modifica sola**: hay que **Regenerar propuesta** o ajustar en el tablero.
@@ -76,9 +79,10 @@ Después de cualquier cambio de parámetros, la propuesta ya generada **no se mo
 | C-8 | Reglas duras nuevas | `src/app/core/rules/reglas-duras.ts`: nueva clase que implemente `ReglaDura` y agregarla a `REGLAS_DURAS` |
 | C-9 | Reglas blandas nuevas | `src/app/core/rules/reglas-blandas.ts` y la lista `REGLAS_BLANDAS` de `core/data/trazabilidad.ts` |
 | C-10 | Valores por defecto de los parámetros | `seed.ts` → `PARAMETROS_POR_DEFECTO` |
+| C-11 | Permitir dos sesiones del mismo grupo el mismo día (p. ej. un bloque de 4 h el sábado) | `reglas-duras.ts` → clase `R8SesionesMaximas` (quitar la parte de «mismo día») y `generador.ts` → `candidatos()` |
 
 > [!IMPORTANT]
-> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (5 → 6) para que los navegadores que ya abrieron la demo descarten los datos viejos.
+> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (hoy está en 6; pasarlo a 7) para que los navegadores que ya abrieron la demo descarten los datos viejos.
 
 Flujo para publicar un cambio: `git add .` → `git commit -m "fix: …"` → `git push` → Vercel lo despliega solo en uno o dos minutos.
 
@@ -88,7 +92,7 @@ Flujo para publicar un cambio: `git add .` → `git commit -m "fix: …"` → `g
 
 - **Sin backend real.** El servicio `StoreService` hace de servidor dentro del navegador; los datos viven en el `localStorage` de cada persona y no se comparten entre equipos. En el sistema real esto lo hace la API en Spring Boot con MySQL.
 - **Contraseñas simuladas.** Se guardan con un resumen (hash) de demostración, no con un algoritmo seguro como bcrypt.
-- **Cruces inevitables en la noche.** 2.º y 3.º semestre nocturno tienen más sesiones que franjas libres (lunes a viernes de 6 a 10 p. m. + sábado de 7 a 11), así que el generador deja algunos cruces del mismo semestre y los reporta como **B4**. Se eliminan abriendo más franja nocturna (C-6) o reduciendo sesiones.
+- **Cruces inevitables en la noche.** 2.º y 3.º semestre nocturno tienen más sesiones que franjas libres (lunes a viernes de 6 a 10 p. m. + sábado en la mañana), así que el generador deja algunos cruces del mismo semestre y los reporta como **B4**. Se eliminan abriendo más franja nocturna (C-6) o reduciendo sesiones.
 - **El generador es voraz**, no óptimo: da una solución válida y cómoda en milisegundos, pero no garantiza el mínimo de restricciones blandas.
 - **La reubicación de estudiantes** al cerrar un grupo se decide fuera del sistema, como dice el requerimiento RF-21.
 - **No hay notificaciones** (correo) al publicar ni al registrar observaciones.

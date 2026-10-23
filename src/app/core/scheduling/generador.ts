@@ -247,18 +247,6 @@ export class GeneradorVoraz implements GeneradorHorario {
         }
       }
     }
-    // jornada nocturna: un curso de 2 sesiones puede ir en un bloque de 4 h el sábado (7–11 o 9–13)
-    if (!diurna && n === 2) {
-      for (const h of horasSab.slice(0, -1)) {
-        const franjas: [Dia, number][] = [[5, h], [5, h + dur]];
-        let costo = 9;
-        for (const [dia, hora] of franjas) {
-          const r = oc.efectoNivel(nivel, g.jornada, g.cursoId, dia, hora);
-          costo += r.huecos * 4 + (r.cruza ? 40 : 0);
-        }
-        out.push({ franjas, costo });
-      }
-    }
     return out;
   }
 

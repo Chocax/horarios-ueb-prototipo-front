@@ -62,10 +62,18 @@ type Modo = 'docente' | 'aula' | 'curso' | 'nivel';
                 <select [ngModel]="aulaId()" (ngModelChange)="aulaId.set($event)"><option value="">Seleccione…</option>@for (a of aulas(); track a.id) { <option [value]="a.id">{{ a.codigo }} · {{ a.capacidad }} puestos</option> }</select>
               }
               @case ('curso') {
-                <select [ngModel]="cursoId()" (ngModelChange)="cursoId.set($event)"><option value="">Seleccione…</option>@for (c of cursos(); track c.id) { <option [value]="c.id">{{ c.nombre }} (sem. {{ c.nivel }})</option> }</select>
+                <select [ngModel]="cursoId()" (ngModelChange)="cursoId.set($event); grupoId.set('')"><option value="">Seleccione…</option>@for (c of cursos(); track c.id) { <option [value]="c.id">{{ c.nombre }} (sem. {{ c.nivel }})</option> }</select>
               }
             }
           </div>
+          @if (modo() === 'curso' && cursoId()) {
+            <div class="field" style="min-width:200px"><label>Grupo</label>
+              <select [ngModel]="grupoId()" (ngModelChange)="grupoId.set($event)">
+                <option value="">Todos los grupos</option>
+                @for (g of gruposCurso(); track g.id) { <option [value]="g.id">{{ g.codigo }} · {{ g.jornada === 'DIURNA' ? 'diurna' : 'nocturna' }}</option> }
+              </select>
+            </div>
+          }
         </div>
       </div>
 
@@ -116,11 +124,15 @@ export class Consulta {
     const l = this.store.versionesPeriodo();
     return l.find((v) => v.id === this.versionId()) ?? this.store.versionPublicada() ?? this.store.versionTrabajo() ?? l[0] ?? null;
   });
-  protected readonly modo = signal<Modo>('nivel');
+  protected readonly modo = signal<Modo>(this.route.snapshot.queryParamMap.get('curso') ? 'curso' : 'nivel');
   protected readonly nivel = signal(1);
   protected readonly docenteId = signal('');
   protected readonly aulaId = signal('');
-  protected readonly cursoId = signal('');
+  protected readonly cursoId = signal(this.route.snapshot.queryParamMap.get('curso') ?? '');
+  protected readonly grupoId = signal(this.route.snapshot.queryParamMap.get('grupo') ?? '');
+  protected readonly gruposCurso = computed(() =>
+    this.store.gruposPeriodo().filter((g) => g.cursoId === this.cursoId()).sort((a, b) => a.codigo.localeCompare(b.codigo)),
+  );
   protected readonly sel = signal<Sesion | null>(null);
   protected readonly puedeExportar = computed(() => this.sesion.tieneRol('COORDINADOR', 'ADMINISTRADOR'));
 
@@ -141,7 +153,7 @@ export class Consulta {
         case 'aula':
           return s.aulaId === this.aulaId();
         case 'curso':
-          return g?.cursoId === this.cursoId();
+          return g?.cursoId === this.cursoId() && (!this.grupoId() || s.grupoId === this.grupoId());
       }
     });
   });
@@ -157,7 +169,7 @@ export class Consulta {
       case 'aula':
         return this.aulaId() ? `Aula ${cat.aula(this.aulaId())?.codigo}` : 'Seleccione un aula';
       case 'curso':
-        return this.cursoId() ? cat.curso(this.cursoId())?.nombre ?? '' : 'Seleccione un curso';
+        return this.cursoId() ? `${cat.curso(this.cursoId())?.nombre ?? ''}${this.grupoId() ? ' ' + (cat.grupo(this.grupoId())?.codigo ?? '') : ''}` : 'Seleccione un curso';
     }
   });
 

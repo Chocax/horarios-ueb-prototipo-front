@@ -1,17 +1,18 @@
 // CU-08 Gestionar grupos · CU-09 Sugerir número de grupos · RF-07, RF-18
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Curso, Grupo } from '../../core/models';
+import { RouterLink } from '@angular/router';
+import { Curso, Grupo, Sesion } from '../../core/models';
 import { cupoEfectivo } from '../../core/rules/reglas-duras';
 import { StoreService } from '../../core/services/store.service';
 import { ToastService } from '../../core/services/toast.service';
-import { normalizar, nuevoId } from '../../core/util';
+import { nombreCaracteristica, nombreDia, normalizar, nuevoId, rango } from '../../core/util';
 import { Icon } from '../../shared/icon';
 import { Modal } from '../../shared/modal';
 
 @Component({
   selector: 'app-grupos',
-  imports: [FormsModule, Icon, Modal],
+  imports: [FormsModule, RouterLink, Icon, Modal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -43,13 +44,18 @@ import { Modal } from '../../shared/modal';
           <tbody>
             @for (f of filas(); track f.curso.id) {
               <tr>
-                <td><strong>{{ f.curso.nombre }}</strong><div class="caption">{{ f.curso.codigo }} · semestre {{ f.curso.nivel }}</div></td>
+                <td>
+                  <strong>{{ f.curso.nombre }}</strong><div class="caption">{{ f.curso.codigo }} · semestre {{ f.curso.nivel }}</div>
+                  @if (f.grupos.length) {
+                    <a class="ver-horario" routerLink="/tablero" [queryParams]="{ curso: f.curso.id }"><app-icon name="eye" [size]="13" /> Ver horario de sus grupos</a>
+                  }
+                </td>
                 <td class="num"><input type="number" class="mini" [ngModel]="f.demanda" (change)="demanda(f.curso, $any($event.target).value)" min="0" [attr.aria-label]="'Demanda ' + f.curso.nombre" /></td>
                 <td class="num"><span class="pill blue">{{ f.sugeridos }}</span></td>
                 <td>
                   <div class="row" style="gap:6px">
                     @for (g of f.grupos; track g.id) {
-                      <button type="button" class="chip" [class.n]="g.jornada === 'NOCTURNA'" [class.mal]="g.cupoPlaneado > efectivo()" (click)="editar(g)">
+                      <button type="button" class="chip" [class.n]="g.jornada === 'NOCTURNA'" [class.mal]="g.cupoPlaneado > efectivo()" [class.pend]="pendiente(g.id)" (click)="editar(g)" [title]="'Ver la ficha del grupo ' + g.codigo">
                         {{ g.codigo }} · {{ g.jornada === 'DIURNA' ? 'Diurna' : 'Nocturna' }} · {{ g.cupoPlaneado }}
                       </button>
                     }
@@ -73,7 +79,48 @@ import { Modal } from '../../shared/modal';
     </div>
 
     @if (edit(); as e) {
-      <app-modal [titulo]="(esNuevo() ? 'Nuevo grupo · ' : '') + etiqueta(e)" subtitulo="El cupo planeado se valida contra el cupo efectivo (R9)." (cerrar)="edit.set(null)">
+      <app-modal [titulo]="(esNuevo() ? 'Nuevo grupo · ' : '') + etiqueta(e)" [subtitulo]="esNuevo() ? 'El cupo planeado se valida contra el cupo efectivo (R9).' : subtituloFicha(e)" [ancho]="!esNuevo()" (cerrar)="edit.set(null)">
+        @if (!esNuevo()) {
+          <!-- ficha del grupo: datos, horario y docente en la versión vigente -->
+          <div class="ficha">
+            <div class="datos">
+              <div><span class="caption">Jornada</span><strong>{{ e.jornada === 'DIURNA' ? 'Diurna' : 'Nocturna' }}</strong></div>
+              <div><span class="caption">Cupo planeado</span><strong>{{ original()?.cupoPlaneado }} / {{ efectivo() }}</strong></div>
+              <div><span class="caption">Inscritos</span><strong>{{ e.inscritos ?? 'Sin registrar' }}</strong></div>
+              <div><span class="caption">Estado</span><strong>{{ e.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado' }}</strong></div>
+              <div><span class="caption">Sesiones por semana</span><strong>{{ requeridas(e) }} × {{ p().duracionSesion }} h</strong></div>
+              <div><span class="caption">Aula requerida</span><strong>{{ aulaRequerida(e) }}</strong></div>
+            </div>
+
+            <div class="label" style="margin:16px 0 6px">Horario {{ etiquetaVersion() }}</div>
+            @if (!versionVista()) {
+              <p class="muted">Aún no hay propuesta de horario en {{ store.periodo().codigo }}. Genérela desde el tablero.</p>
+            } @else {
+              @if (sesionesGrupo(e.id).length) {
+                <div class="tabla-wrap">
+                  <table class="tabla compacta">
+                    <thead><tr><th>Día</th><th>Hora</th><th>Aula</th><th>Docente</th></tr></thead>
+                    <tbody>
+                      @for (x of sesionesGrupo(e.id); track x.id) {
+                        <tr><td>{{ dia(x) }}</td><td>{{ hora(x) }}</td><td class="mono">{{ aula(x) }}</td><td>{{ docente(x) }}</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @if (pendiente(e.id); as pe) {
+                <div class="errores" style="margin-top:10px"><span class="regla">{{ pe.regla }}</span> Pendiente: {{ pe.causa }}</div>
+              } @else if (!sesionesGrupo(e.id).length) {
+                <p class="muted">El grupo no tiene sesiones en esta versión (puede estar cerrado o haberse creado después de generarla).</p>
+              }
+            }
+            <div class="row" style="margin-top:12px;gap:8px">
+              <a class="btn btn-sm" routerLink="/tablero" [queryParams]="{ curso: e.cursoId, grupo: e.id }"><app-icon name="board" [size]="14" /> Ver en el tablero</a>
+              <a class="btn btn-sm btn-ghost" routerLink="/tablero" [queryParams]="{ curso: e.cursoId }"><app-icon name="eye" [size]="14" /> Comparar con los otros grupos del curso</a>
+            </div>
+          </div>
+          <div class="label" style="margin:20px 0 10px">Configuración del grupo</div>
+        }
         <div class="form-grid">
           <div class="field"><label>Código</label><input type="text" [(ngModel)]="e.codigo" /></div>
           <div class="field"><label>Jornada</label>
@@ -106,6 +153,12 @@ import { Modal } from '../../shared/modal';
       .chip.n { background: #e8eefc; }
       .chip.mal { background: #fdeeec; border-color: var(--color-coral); color: #8e1a0a; }
       .chip:hover { border-color: var(--color-notion-blue); }
+      .chip.pend { border-color: var(--color-coral); border-style: dashed; }
+      .ver-horario { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; margin-top: 4px; }
+      .ficha .datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px; }
+      .ficha .datos > div { display: flex; flex-direction: column; }
+      .tabla.compacta td, .tabla.compacta th { padding-top: 6px; padding-bottom: 6px; }
+      @media (max-width: 640px) { .ficha .datos { grid-template-columns: 1fr 1fr; } }
       @media (max-width: 900px) { .tabla-wrap > table.tabla { min-width: 1040px; } .chip { white-space: nowrap; } }
     `,
   ],
@@ -138,6 +191,37 @@ export class Grupos {
         };
       });
   });
+
+  /** Versión que se muestra en la ficha: el borrador si existe; si no, la publicada. */
+  protected readonly versionVista = computed(() => this.store.versionTrabajo() ?? this.store.versionPublicada());
+  protected readonly etiquetaVersion = computed(() => {
+    const v = this.versionVista();
+    return v ? `· versión ${v.numero} (${v.estado === 'BORRADOR' ? 'borrador' : 'publicada'})` : '';
+  });
+  /** Grupo tal como está guardado (la ficha muestra datos guardados, no lo que se edita en el formulario). */
+  protected readonly original = computed(() => this.store.gruposPeriodo().find((g) => g.id === this.edit()?.id) ?? null);
+  sesionesGrupo(grupoId: string): Sesion[] {
+    return (this.versionVista()?.sesiones ?? []).filter((x) => x.grupoId === grupoId).sort((a, b) => a.dia - b.dia || a.inicio - b.inicio);
+  }
+  pendiente(grupoId: string) {
+    return this.versionVista()?.pendientes.find((x) => x.grupoId === grupoId) ?? null;
+  }
+  requeridas(g: Grupo) {
+    return this.store.sesionesRequeridas(g.id);
+  }
+  aulaRequerida(g: Grupo) {
+    const c = this.store.catalogo().curso(g.cursoId);
+    return c?.caracteristicasRequeridas.length ? c.caracteristicasRequeridas.map(nombreCaracteristica).join(' + ') : 'Salón estándar';
+  }
+  subtituloFicha(g: Grupo) {
+    const c = this.store.catalogo().curso(g.cursoId);
+    const docs = [...new Set(this.sesionesGrupo(g.id).map((x) => this.docente(x)))];
+    return `${c?.codigo} · semestre ${c?.nivel}${docs.length ? ' · ' + docs.join(', ') : ''}`;
+  }
+  dia = (x: Sesion) => nombreDia(x.dia);
+  hora = (x: Sesion) => rango(x.inicio, x.inicio + this.store.parametrosDe(this.versionVista()!).duracionSesion);
+  aula = (x: Sesion) => (x.aulaId ? this.store.catalogo().aula(x.aulaId)?.codigo ?? '' : 'Sin aula');
+  docente = (x: Sesion) => (x.docenteId ? this.store.catalogo().docente(x.docenteId)?.nombre ?? '' : 'Sin docente');
 
   habilitadosDe(cursoId: string) {
     return this.store.docentes().filter((d) => d.habilitaciones.includes(cursoId));

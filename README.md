@@ -63,6 +63,8 @@ El sistema propuesto genera una propuesta válida, deja ajustarla arrastrando se
 | 👥 | Demanda por curso, sugerencia de número de grupos y docente preferente por grupo | *Grupos y demanda* |
 | 🪄 | **Generación automática** de la propuesta en milisegundos, con grupos pendientes y su causa | *Tablero* |
 | 🖱️ | **Tablero semanal con arrastrar y soltar**: cada movimiento se valida contra R1–R9 y, si viola una regla, la sesión vuelve y se nombra la regla | *Tablero* |
+| 🎨 | **Vista por curso**: un color por grupo, con su horario y docente; por semestre, un color por curso | *Tablero → Por curso* · *Consultar horario → Curso* |
+| 🗂️ | **Ficha del grupo**: datos, horario (día, hora, aula, docente) o causa del pendiente, y su configuración | *Grupos y demanda* → clic en el grupo |
 | 📊 | Restricciones blandas B1–B6 (informativas, no bloquean) | *Tablero → Restricciones blandas* |
 | 🗳️ | Concepto del comité por versión, publicación bloqueada si hay choques o pendientes, restauración de versiones | *Revisión* · *Versiones* |
 | 🔎 | Consulta por docente, aula, curso o semestre y exportación a CSV y PDF | *Consultar horario* · *Mi horario* |
@@ -132,7 +134,8 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
 > [!IMPORTANT]
 > - **En el día**, cada curso abre **mínimo dos grupos (G1 y G2)** y los dictan **dos docentes distintos**.
 > - **En la noche**, cada curso abre **un grupo (G3)**; solo cuando la demanda lo justifica abre un segundo (**G4**, como Matemáticas básicas y Cálculo diferencial). Nunca más de dos.
-> - La **jornada diurna** usa 07–09, 09–11, 14–16 y 16–18 de lunes a viernes; la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana** (07–11).
+> - La **jornada diurna** usa 07–09, 09–11, 14–16 y 16–18 de lunes a viernes; la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana**.
+> - **Un grupo tiene como máximo una sesión por día** (regla dura R8): nunca dos bloques de la misma materia el mismo día, tampoco el sábado.
 > - El generador respeta la norma de dos docentes y, si no puede cumplirla, deja el grupo **pendiente** con la causa. Si alguien la rompe a mano en el tablero, aparece como restricción blanda **B6**.
 
 ### Docentes con usuario en la demo (asignaciones acordadas)
@@ -143,7 +146,7 @@ Estos grupos guardan un **docente preferente**: el generador intenta primero a e
 |---|---|---|
 | Edward Paul Guillén Pinto | Noche (lunes a viernes) | Redes de datos I, Redes de datos II, Investigación tecnológica y de ingeniería, Seguridad de la información |
 | Cristian Fabián Vanegas | Tarde-noche | Fundamentos de programación, Dirección y planeación, Gestión de proyectos, Proyecto núcleo II |
-| Saudiel Orlando López | Día, tarde y sábados | Historia y filosofía de la ingeniería, Matemáticas discretas, Gestión de tecnología e innovación, Seminario de investigación, Lógica matemática |
+| Saudiel Orlando López | Día, sábados y viernes en la noche | Historia y filosofía de la ingeniería, Matemáticas discretas, Gestión de tecnología e innovación, Seminario de investigación, Lógica matemática |
 | Germán Augusto Neuta | Viernes y sábados | Legislación, normatividad y ciudadanía, Electiva profesional II |
 
 ### Restricciones duras (bloquean · RF-09)
@@ -159,7 +162,7 @@ Cada una es una clase en `src/app/core/rules/reglas-duras.ts` (patrón Specifica
 | **R5** | Docentes no habilitados para el curso |
 | **R6** | Sesiones fuera de la disponibilidad del docente |
 | **R7** | Superar las horas máximas de docencia del docente |
-| **R8** | Más sesiones semanales de las permitidas |
+| **R8** | Más sesiones semanales de las permitidas, o **dos sesiones del mismo grupo el mismo día** |
 | **R9** | Grupos con cupo por encima del cupo efectivo |
 
 ### Restricciones blandas (se reportan, no bloquean · RF-11)
@@ -181,7 +184,7 @@ flowchart TD
     B --> C{¿Cumple R8 y R9?<br>¿Hay docentes y aulas aptas?}
     C -- No --> P[Pendiente con su regla y causa]
     C -- Sí --> D[Docentes habilitados con disponibilidad en la jornada,<br>sin los que ya dictan otro grupo diurno del curso]
-    D --> E[Patrones de días a la misma hora:<br>L-X · M-J · X-V · L-X-V · sábado 7–11 en la noche]
+    D --> E[Patrones de días a la misma hora:<br>L-X · M-J · X-V · L-X-V · un día + sábado en la noche<br>una sola sesión por día]
     E --> F[Costo de cada patrón: días seguidos, sábado diurno,<br>huecos y cruces del semestre, carga del docente]
     F --> G{¿El más barato pasa R1–R9?}
     G -- Sí --> H[Se asigna docente, aula y bloques]

@@ -41,10 +41,10 @@ Todos los datos son **de demostración**. El plan de estudios es el de Ingenier�
 - **Grupos 2026-2:** 161. **Norma del programa:** en el día cada curso abre al menos dos grupos (G1 y G2) dictados por docentes distintos; en la noche abre un grupo (G3) y, cuando la demanda lo justifica, un segundo (G4: Matemáticas básicas y Cálculo diferencial).
 - **Docentes:** 55, cada curso con al menos dos docentes diurnos habilitados y uno nocturno (salvo el caso de prueba). Vinculación TC, ¾, ½ o ¼ con 16, 12, 8 y 4 horas máximas [confirmar con la Facultad]. Los nombres reales vienen del Excel de referencia; los demás son ficticios.
 - **Aulas:** 86 en los bloques que usa la Facultad. A: pisos 2–4, salas de cómputo (la Facultad está en el piso 3). B: pisos 2–3, salones 1–5 de sillas y tablero y 6–13 de cómputo. I: piso 1 (1–10) y pisos 2–3 (1–4), sillas y tablero. F: pisos 2–3 de cómputo, laboratorios de redes y de seguridad en el piso 2, y pisos 4, 5 y 7 de sillas y tablero. E: piso 1 con mobiliario móvil. G: laboratorios de física (G-LAB).
-- **Horarios generados:** el generador arma patrones como los de la Universidad (lunes-miércoles, martes-jueves, lunes-miércoles-viernes, misma hora), evita cruces entre cursos del mismo semestre y jornada, y compacta el día. La jornada nocturna va de 18:00 a 22:00 y usa el sábado en la mañana; en 2.º y 3.º semestre nocturno las sesiones no caben sin un cruce, y el panel de blandas lo reporta (B4).
+- **Horarios generados:** el generador arma patrones como los de la Universidad (lunes-miércoles, martes-jueves, lunes-miércoles-viernes, misma hora), evita cruces entre cursos del mismo semestre y jornada, y compacta el día. La jornada nocturna va de 18:00 a 22:00 y usa el sábado en la mañana. Un grupo nunca tiene dos sesiones el mismo día (R8); en 2.º y 3.º semestre nocturno las sesiones no caben sin un cruce, y el panel de blandas lo reporta (B4).
 - **Parámetros:** L–V 07:00–22:00, sábado 07:00–13:00, bloque no asignable 12:00–13:00, sesiones de 2 h, cupo 40 + 10 % = 44, mínimo 10 inscritos, 1 a 4 sesiones por semana.
 - **Pendientes intencionales:** al generar 2026-2 quedan dos grupos sin ubicar, para probar su resolución: *Programación I G1* (cupo 44 y la sala de cómputo más grande es de 35, R4) e *Investigación tecnológica G2* (diurno: la única docente diurna habilitada ya dicta el G1 y la norma pide dos docentes distintos, R5).
-- **Docentes con usuario:** Edward Paul Guillén Pinto (noche: Redes I, Redes II, Investigación tecnológica y Seguridad), Cristian Fabián Vanegas (tarde-noche: Fundamentos de programación, Dirección y planeación, Gestión de proyectos y Proyecto núcleo II), Saudiel Orlando López (día y sábados: Historia y filosofía, Matemáticas discretas, Gestión de tecnología, Seminario de investigación y Lógica matemática) y Germán Augusto Neuta (viernes y sábados: Legislación y una Electiva profesional). Estas asignaciones se guardan como *docente preferente* del grupo y el generador las intenta primero.
+- **Docentes con usuario:** Edward Paul Guillén Pinto (noche: Redes I, Redes II, Investigación tecnológica y Seguridad), Cristian Fabián Vanegas (tarde-noche: Fundamentos de programación, Dirección y planeación, Gestión de proyectos y Proyecto núcleo II), Saudiel Orlando López (día, sábados y viernes en la noche: Historia y filosofía, Matemáticas discretas, Gestión de tecnología, Seminario de investigación y Lógica matemática) y Germán Augusto Neuta (viernes y sábados: Legislación y una Electiva profesional). Estas asignaciones se guardan como *docente preferente* del grupo y el generador las intenta primero.
 
 ## 5. Organización del código
 | Carpeta | Contenido |
@@ -138,7 +138,7 @@ _Rol: Coordinador · Cubre: CU-10 · CU-11 · RF-08 · RF-09_
 
 **Pasos**
 1. Menú **Tablero del horario** → **Generar propuesta inicial**.
-2. Use los filtros *Por semestre / Por docente / Por aula*.
+2. Use los filtros *Por semestre / Por curso / Por docente / Por aula*. Por semestre, cada curso tiene su color y su nombre aparece arriba de la grilla.
 
 **Resultado esperado**
 - Se crea la versión 1 (borrador) en milisegundos: unas 287 sesiones y 0 violaciones duras.
@@ -354,6 +354,40 @@ _Rol: Coordinador o administrador · Cubre: RF-15_
 **Resultado esperado**
 - Están los inicios de sesión, generaciones, movimientos, importaciones, publicaciones, cierres de grupo y los intentos rechazados por permisos, con usuario y fecha-hora.
 
+### P-26 · Ver un curso con todos sus grupos
+_Rol: Coordinador · Cubre: CU-12 · CU-18 · RF-10 · RF-19_
+
+**Pasos**
+1. En el tablero, vista **Por semestre**, haga clic en el nombre de un curso (arriba de la grilla), o elija **Por curso** y seleccione *Estructuras de datos*.
+2. Haga clic en la tarjeta de un grupo (G1, G2, G3) para dejar solo ese grupo en la grilla; otro clic vuelve a mostrarlos todos.
+3. En **Consultar horario → Curso** elija el mismo curso y, si quiere, un grupo.
+
+**Resultado esperado**
+- En la vista por curso cada grupo tiene su color, y su tarjeta muestra días, horas y docente.
+- En *Consultar horario* la leyenda indica el color y el docente de cada grupo.
+
+### P-27 · Ficha de un grupo
+_Rol: Coordinador · Cubre: CU-08 · RF-07_
+
+**Pasos**
+1. Menú **Grupos y demanda**: haga clic en un grupo (por ejemplo *Matemáticas básicas G3*), o en **Ver horario de sus grupos** debajo del nombre del curso.
+2. En la ficha pulse **Comparar con los otros grupos del curso**.
+
+**Resultado esperado**
+- La ficha muestra jornada, cupo, inscritos, estado, sesiones por semana, tipo de aula y el horario del grupo (día, hora, aula y docente), o la regla y la causa si quedó pendiente. Debajo sigue la configuración del grupo.
+- El enlace abre el tablero en la vista de ese curso.
+
+### P-28 · Dos sesiones del mismo grupo el mismo día (R8)
+_Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-09 · RF-10_
+
+**Pasos**
+1. En el tablero, vista **Por curso**, elija un curso y deje solo su G1.
+2. Abra una de sus sesiones y, en el panel, cámbiela al día de la otra sesión del grupo, a una hora libre. Pulse **Validar y aplicar** (o arrástrela a ese día).
+
+**Resultado esperado**
+- Se rechaza con R8: «… ya tiene clase el jueves (16:00–18:00); un grupo solo puede tener una sesión por día».
+- El generador tampoco pone dos sesiones de un grupo el mismo día, ni siquiera el sábado.
+
 ## 7. Matriz de trazabilidad
 | RF | CU | Pruebas |
 |---|---|---|
@@ -363,10 +397,10 @@ _Rol: Coordinador o administrador · Cubre: RF-15_
 | RF-04 | CU-05 | P-04, P-14, P-18 |
 | RF-05 | CU-06 | P-05 |
 | RF-06 | CU-06 | P-05, P-10 |
-| RF-07 | CU-08 | P-13, P-23 |
+| RF-07 | CU-08 | P-13, P-23, P-27 |
 | RF-08 | CU-10 | P-07 |
-| RF-09 | CU-11 | P-07 a P-10, P-23 |
-| RF-10 | CU-12 | P-08, P-09, P-10 |
+| RF-09 | CU-11 | P-07 a P-10, P-23, P-28 |
+| RF-10 | CU-12 | P-08, P-09, P-10, P-26, P-28 |
 | RF-11 | CU-13 | P-11 |
 | RF-12 | CU-14, CU-15 | P-12, P-16, P-17 |
 | RF-13 | CU-19 | P-18, P-19 |
@@ -375,7 +409,7 @@ _Rol: Coordinador o administrador · Cubre: RF-15_
 | RF-16 | CU-03 | P-22 |
 | RF-17 | CU-07 | P-06, P-14 |
 | RF-18 | CU-09 | P-23 |
-| RF-19 | CU-18 | P-15, P-18, P-19 |
+| RF-19 | CU-18 | P-15, P-18, P-19, P-26 |
 | RF-20 | CU-20 | P-15, P-16 |
 | RF-21 | CU-17 | P-20 |
 | RF-22 | CU-02 | P-01, P-24 |

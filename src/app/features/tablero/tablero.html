@@ -50,6 +50,7 @@
       <div class="filtros">
         <div class="tabs">
           <button [class.on]="modo() === 'nivel'" (click)="modo.set('nivel')">Por semestre</button>
+          <button [class.on]="modo() === 'curso'" (click)="modo.set('curso')">Por curso</button>
           <button [class.on]="modo() === 'docente'" (click)="modo.set('docente')">Por docente</button>
           <button [class.on]="modo() === 'aula'" (click)="modo.set('aula')">Por aula</button>
         </div>
@@ -61,6 +62,18 @@
             <select [ngModel]="jornada()" (ngModelChange)="jornada.set($event)" aria-label="Jornada">
               <option value="">Diurna y nocturna</option><option value="DIURNA">Solo diurna</option><option value="NOCTURNA">Solo nocturna</option>
             </select>
+          }
+          @case ('curso') {
+            <select [ngModel]="cursoId()" (ngModelChange)="elegirCurso($event)" aria-label="Curso" class="sel-curso">
+              <option value="">Seleccione un curso…</option>
+              @for (c of cursosConGrupos(); track c.id) { <option [value]="c.id">Sem. {{ c.nivel }} · {{ c.nombre }}</option> }
+            </select>
+            @if (cursoId()) {
+              <select [ngModel]="grupoId()" (ngModelChange)="grupoId.set($event)" aria-label="Grupo">
+                <option value="">Todos los grupos ({{ gruposDelCurso().length }})</option>
+                @for (g of gruposDelCurso(); track g.id) { <option [value]="g.id">{{ g.codigo }} · {{ g.jornada === 'DIURNA' ? 'diurna' : 'nocturna' }}</option> }
+              </select>
+            }
           }
           @case ('docente') {
             <select [ngModel]="docenteId()" (ngModelChange)="docenteId.set($event)" aria-label="Docente">
@@ -122,14 +135,38 @@
           <div><i class="sw" style="background:repeating-linear-gradient(135deg, rgba(0,0,0,.08) 0 3px, transparent 3px 6px)"></i> Fuera de la franja hábil (R3)</div>
           <div><i class="sw" style="background:repeating-linear-gradient(135deg, rgba(255,177,16,.35) 0 3px, transparent 3px 6px)"></i> Bloque no asignable</div>
           <div><i class="sw" style="border:2px solid var(--color-vermillion)"></i> Sesión con violación dura</div>
-          <div class="caption" style="margin-top:6px">Colores por semestre del plan. D = diurna, N = nocturna.</div>
+          <div class="caption" style="margin-top:6px">{{ modo() === 'curso' ? 'Un color por grupo del curso.' : 'Un color por curso; clic en el nombre del curso (arriba de la grilla) para verlo con todos sus grupos.' }} D = diurna, N = nocturna.</div>
         </div>
       </aside>
 
       <!-- grilla semanal -->
       <div class="grilla-wrap">
+        @if (modo() === 'curso' && cursoId()) {
+          <!-- grupos del curso: color, horario y docente de cada uno; clic para aislarlo -->
+          <div class="grupos-curso">
+            @for (x of leyendaColores(); track x.id) {
+              <button type="button" class="gc" [class.on]="grupoId() === x.id" [class.apagado]="grupoId() && grupoId() !== x.id" (click)="grupoId.set(grupoId() === x.id ? '' : x.id)">
+                <i class="sw" [style.background]="x.color"></i>
+                <span class="gc-t">{{ x.titulo }}</span>
+                <span class="gc-d">{{ x.detalle }}</span>
+              </button>
+            }
+          </div>
+        } @else if (modo() !== 'curso' && visibles().length && leyendaColores().length > 1) {
+          <!-- leyenda de cursos de la vista; clic para ver el curso con todos sus grupos -->
+          <div class="leyenda-cursos">
+            @for (x of leyendaColores(); track x.id) {
+              <button type="button" class="lc" (click)="verCurso(x.curso)" [title]="'Ver ' + x.titulo + ' con todos sus grupos'">
+                <i class="sw" [style.background]="x.color"></i>{{ x.titulo }}
+              </button>
+            }
+          </div>
+        }
         @if (modo() !== 'nivel' && !visibles().length) {
-          <div class="card vacio"><p>{{ modo() === 'docente' ? 'Seleccione un docente para ver su semana.' : 'Seleccione un aula para ver su ocupación semanal.' }}</p></div>
+          <div class="card vacio"><p>{{
+            modo() === 'docente' ? 'Seleccione un docente para ver su semana.'
+            : modo() === 'aula' ? 'Seleccione un aula para ver su ocupación semanal.'
+            : cursoId() ? 'Este curso aún no tiene sesiones ubicadas en la versión.' : 'Seleccione un curso para ver el horario de todos sus grupos.' }}</p></div>
         } @else {
           <div class="semana" [style.--h.px]="alto">
             <div class="col-horas">
@@ -202,6 +239,9 @@
             <div><span class="caption">Semestre</span><strong>{{ cursoDe(s)?.nivel }}</strong></div>
             <div><span class="caption">Aula requerida</span><strong>{{ cars(cursoDe(s)?.caracteristicasRequeridas) }}</strong></div>
           </div>
+          @if (modo() !== 'curso') {
+            <button class="btn btn-sm btn-ghost" style="margin-bottom:10px" (click)="verCurso(cursoDe(s)!.id)"><app-icon name="eye" [size]="14" /> Ver todos los grupos de este curso</button>
+          }
 
           @if (selViol().length) {
             <div class="errores" style="margin:12px 0">
