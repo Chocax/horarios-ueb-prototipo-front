@@ -30,6 +30,12 @@ import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, mapaColores
             @for (h of horas(); track h) {
               <div class="celda" [class.off]="fuera(d.valor, h)" [class.lunch]="bloq(h)" [style.top.px]="(h - horas()[0]) * alto"></div>
             }
+            @for (x of extrasDe(d.valor); track $index) {
+              <div class="extra" [style.top.px]="(x.inicio - horas()[0]) * alto + 2" [style.height.px]="(x.fin - x.inicio) * alto - 4" [attr.title]="x.titulo + ' · ' + x.detalle">
+                <span class="nom">{{ x.titulo }}</span>
+                <span class="meta">{{ x.detalle }}</span>
+              </div>
+            }
             @for (s of porDia()[d.valor]; track s.id) {
               <button
                 type="button"
@@ -60,6 +66,11 @@ import { ALTO_HORA, bloqueado, carriles, fueraDeFranja, horasGrilla, mapaColores
   styleUrl: './semana.scss',
   styles: [
     `
+      .extra { position: absolute; left: 2px; right: 2px; z-index: 1; border: 1.5px dashed var(--color-notion-blue); border-radius: 8px;
+        background: repeating-linear-gradient(135deg, rgba(9,127,232,.06) 0 6px, transparent 6px 12px); padding: 4px 8px; overflow: hidden;
+        display: flex; flex-direction: column; font-size: 11.5px; }
+      .extra .nom { font-weight: 600; color: var(--color-notion-blue); }
+      .extra .meta { color: var(--ink-60); }
       .leyenda-grid { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-60); }
       .lg { display: inline-flex; align-items: center; gap: 6px; }
       .lg i { width: 14px; height: 12px; border-radius: 3px; border: 1px solid var(--hairline); display: inline-block; }
@@ -73,6 +84,9 @@ export class ScheduleGrid {
   readonly parametros = input.required<ParametrosProgramacion>();
   readonly modo = input<'docente' | 'aula' | 'curso' | 'nivel'>('nivel');
   readonly seleccion = output<Sesion>();
+  /** Bloques que no son clase (p. ej. horario de atención del docente); se dibujan punteados. */
+  readonly extras = input<{ dia: number; inicio: number; fin: number; titulo: string; detalle: string }[]>([]);
+  extrasDe = (dia: number) => this.extras().filter((x) => x.dia === dia);
 
   protected readonly dias = DIAS;
   protected readonly alto = ALTO_HORA;

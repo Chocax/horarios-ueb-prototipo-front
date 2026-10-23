@@ -37,7 +37,7 @@ export const MATRIZ_RF: FilaRF[] = [
   { rf: 'RF-07', titulo: 'Creación de grupos con cupo planeado', cu: 'CU-08', pantallas: [P.grupos], prueba: 'Cupo 44 se acepta, 45 se rechaza (R9).' },
   { rf: 'RF-08', titulo: 'Generación de propuesta con pendientes y causa', cu: 'CU-10', pantallas: [P.tablero], prueba: 'Generar: 1 pendiente con su causa (R4), 0 violaciones; la norma de dos docentes aparece como B6.' },
   { rf: 'RF-09', titulo: 'Validación de restricciones duras R1–R9', cu: 'CU-11', pantallas: [P.tablero, P.grupos, P.versiones], prueba: 'Cada rechazo nombra la regla violada.' },
-  { rf: 'RF-10', titulo: 'Ajuste por arrastrar y soltar con rechazo inmediato', cu: 'CU-12', pantallas: [P.tablero], prueba: 'Arrastrar a 12:00 o a un choque de docente: vuelve y muestra R3/R1.' },
+  { rf: 'RF-10', titulo: 'Ajuste por arrastrar y soltar con rechazo inmediato', cu: 'CU-12', pantallas: [P.tablero], prueba: 'Arrastrar a 13:00 (almuerzo) o a un choque de docente: vuelve y muestra R3/R1.' },
   { rf: 'RF-11', titulo: 'Reporte de restricciones blandas B1–B6', cu: 'CU-13', pantallas: [P.tablero], prueba: 'Panel de blandas; no bloquea la publicación.' },
   { rf: 'RF-12', titulo: 'Versionado, publicación bloqueada y restauración', cu: 'CU-14, CU-15', pantallas: [P.versiones], prueba: 'Publicar con pendientes se bloquea; restaurar crea borrador.' },
   { rf: 'RF-13', titulo: 'Exportación CSV y PDF', cu: 'CU-19', pantallas: [P.consulta, P.miHorario], prueba: 'CSV con una fila por sesión; PDF por impresión.' },
@@ -50,6 +50,7 @@ export const MATRIZ_RF: FilaRF[] = [
   { rf: 'RF-20', titulo: 'Observaciones del comité sobre una versión', cu: 'CU-20', pantallas: [P.revision, P.versiones], prueba: 'El coordinador ve la observación en la versión.' },
   { rf: 'RF-21', titulo: 'Inscritos y cierre de grupos bajo el mínimo', cu: 'CU-17', pantallas: [P.inscritos, P.reportes], prueba: 'Grupo con 8 inscritos se cierra y libera docente y aula.' },
   { rf: 'RF-22', titulo: 'Gestión de usuarios y roles', cu: 'CU-02', pantallas: [P.usuarios], prueba: 'Usuario desactivado no inicia sesión; cambio de rol en bitácora.' },
+  { rf: 'RF-23', titulo: 'Horario de atención por materia (cambio pedido en la validación)', cu: 'CU-21', pantallas: [P.miDisp, P.docentes, P.miHorario], prueba: 'Germán Neuta: Legislación viernes 12–13 y la electiva «acordar con el docente»; 3 h o cruce con su clase se rechazan.' },
 ];
 
 export const CASOS_USO: { cu: string; nombre: string; actor: string; ruta: string }[] = [
@@ -73,6 +74,7 @@ export const CASOS_USO: { cu: string; nombre: string; actor: string; ruta: strin
   { cu: 'CU-18', nombre: 'Consultar horario', actor: 'Coordinador, Docente, Comité', ruta: '/consulta' },
   { cu: 'CU-19', nombre: 'Exportar horario', actor: 'Coordinador', ruta: '/consulta' },
   { cu: 'CU-20', nombre: 'Registrar observaciones', actor: 'Comité', ruta: '/revision' },
+  { cu: 'CU-21', nombre: 'Registrar horario de atención', actor: 'Docente, Coordinador', ruta: '/mi-disponibilidad' },
 ];
 
 export const REGLAS_BLANDAS = [

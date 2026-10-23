@@ -86,7 +86,7 @@ type Modo = 'docente' | 'aula' | 'curso' | 'nivel';
           <span class="caption">{{ sesiones().length }} sesión(es) · {{ horas() }} h semanales</span>
         </div>
         @if (sesiones().length) {
-          <div style="overflow-x:auto"><app-schedule-grid [sesiones]="sesiones()" [parametros]="store.parametrosDe(v)" [modo]="modo()" (seleccion)="sel.set($event)" /></div>
+          <div style="overflow-x:auto"><app-schedule-grid [sesiones]="sesiones()" [parametros]="store.parametrosDe(v)" [modo]="modo()" [extras]="extrasAtencion()" (seleccion)="sel.set($event)" /></div>
           @if (sel(); as s) {
             <div class="aviso no-print" style="margin-top:12px">
               <app-icon name="pin" [size]="18" />
@@ -173,6 +173,14 @@ export class Consulta {
     }
   });
 
+  /** En la vista por docente se dibuja también su horario de atención (bloques punteados). */
+  protected readonly extrasAtencion = computed(() =>
+    this.modo() !== 'docente' || !this.docenteId()
+      ? []
+      : (this.store.estado().horariosAtencion ?? [])
+          .filter((h) => h.periodoId === this.version()?.periodoId && h.docenteId === this.docenteId() && h.modo === 'HORARIO' && h.dia !== null)
+          .map((h) => ({ dia: h.dia!, inicio: h.inicio!, fin: h.fin!, titulo: 'Atención', detalle: this.store.catalogo().curso(h.cursoId)?.nombre ?? '' })),
+  );
   dia = (s: Sesion) => nombreDia(s.dia);
   docente = (s: Sesion) => (s.docenteId ? this.store.catalogo().docente(s.docenteId)?.nombre : '—');
   aula = (s: Sesion) => (s.aulaId ? this.store.catalogo().aula(s.aulaId)?.codigo : '—');

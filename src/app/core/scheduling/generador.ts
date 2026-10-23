@@ -12,6 +12,8 @@ export interface EntradaGeneracion {
   catalogo: Catalogo;
   /** Sesiones ya ubicadas que se respetan como fijas (reintento de pendientes). */
   sesionesFijas?: Sesion[];
+  /** Horas del docente que no se usan para clase (p. ej. su horario de atención). */
+  bloqueosDocente?: { docenteId: string; dia: Dia; inicio: number; fin: number }[];
 }
 
 export interface ResultadoGeneracion {
@@ -34,7 +36,7 @@ interface Candidato {
 /**
  * Algoritmo voraz con patrones semanales:
  *  1. Ordena los grupos de menos a más opciones (docentes habilitados × aulas aptas).
- *  2. Para cada grupo arma candidatos "patrón de días + misma hora" (L-X, M-J, X-V, L-X-V…), como se
+ *  2. Para cada grupo arma candidatos "patrón de días + misma hora" (primero L-X, M-J, L-X-V; luego los demás), como se
  *     programan las clases en la práctica, y les asigna un costo: días seguidos (B1), sábado en jornada
  *     diurna, huecos y cruces en el horario del semestre y la jornada (B4), horas menos deseadas.
  *  3. Toma el candidato más barato que el validador R1–R9 aprueba, con el docente menos cargado (B3). En la
@@ -42,6 +44,9 @@ interface Candidato {
  *     si no hay ninguno, repite docente y la versión lo reporta como blanda.
  *  4. Si ningún patrón cabe, intenta sesión por sesión; si tampoco, el grupo queda PENDIENTE con su causa.
  */
+/** Costo extra de un patrón de días que no es L-X, M-J ni L-X-V (p. ej. L-J o M-V): se usa solo si los habituales no caben. */
+const PESO_PATRON = 12;
+
 export class GeneradorVoraz implements GeneradorHorario {
   readonly nombre = 'Voraz por patrones semanales';
   constructor(private readonly validador = new ValidadorReglas()) {}
@@ -55,6 +60,7 @@ export class GeneradorVoraz implements GeneradorHorario {
     const pendientes: GrupoPendiente[] = [];
     const carga = new Map<string, number>();
     const ocupacion = new Ocupacion(e, dur);
+    (e.bloqueosDocente ?? []).forEach((b) => ocupacion.bloquearDocente(b.docenteId, b.dia, b.inicio, b.fin));
     fijas.forEach((s) => {
       ocupacion.agregar(s);
       if (s.docenteId) carga.set(s.docenteId, (carga.get(s.docenteId) ?? 0) + dur);
@@ -217,17 +223,20 @@ export class GeneradorVoraz implements GeneradorHorario {
   private candidatos(g: Grupo, n: number, nivel: number, oc: Ocupacion, e: EntradaGeneracion): Candidato[] {
     const diurna = g.jornada === 'DIURNA';
     const dur = e.parametros.duracionSesion;
-    const horasLV = diurna ? [7, 9, 14, 16] : [18, 20];
+    const horasLV = diurna ? [7, 9, 11, 14, 16] : [18, 20];
     const fs = e.parametros.franjaSabado;
     const horasSab = [7, 9, 11].filter(
       (h) => h >= fs.inicio && h + dur <= fs.fin && !e.parametros.bloquesNoAsignables.some((b) => h < b.fin && b.inicio < h + dur),
     );
-    const pref = (dia: number, h: number) => (dia === 5 ? (h === 11 ? 2 : 1) : diurna ? ({ 7: 0, 9: 0, 14: 1, 16: 2 } as Record<number, number>)[h] ?? 1 : 0);
+    const pref = (dia: number, h: number) => (dia === 5 ? (h === 11 ? 2 : 1) : diurna ? ({ 7: 0, 9: 0, 11: 1, 14: 1, 16: 2 } as Record<number, number>)[h] ?? 1 : 0);
     const out: Candidato[] = [];
     for (const dias of combinaciones(n)) {
       const conSab = dias.includes(5);
       const consecutivos = dias.filter((x, i) => i > 0 && x - dias[i - 1] === 1).length;
-      const base = consecutivos * 6 + (conSab ? (diurna ? 12 : 3) : 0);
+      // patrones de la Universidad (L-X, M-J, L-X-V) primero; los demás (L-J, M-V, X-V…) solo si hacen falta
+      const clave = dias.join(',');
+      const habitual = clave === '0,2' || clave === '1,3' || clave === '0,2,4' || dias.length === 1;
+      const base = consecutivos * 6 + (conSab ? (diurna ? 12 : 3) : 0) + (habitual || conSab ? 0 : PESO_PATRON);
       // entre semana todas las sesiones a la misma hora; el sábado, en su propia franja
       const hs = dias.some((x) => x !== 5) ? horasLV : [null];
       const hsSab = conSab ? horasSab : [null];
@@ -261,7 +270,7 @@ export class GeneradorVoraz implements GeneradorHorario {
   private sesionPorSesionPasada(g: Grupo, d: Docente, n: number, aulas: Aula[], ya: Sesion[], e: EntradaGeneracion, oc: Ocupacion, evitarCruces: boolean): Sesion[] | null {
     const p = e.parametros;
     const nivel = e.catalogo.curso(g.cursoId)!.nivel;
-    const horasLV = g.jornada === 'DIURNA' ? [7, 9, 14, 16, 18] : [18, 20, 14, 16];
+    const horasLV = g.jornada === 'DIURNA' ? [7, 9, 11, 14, 16, 18] : [18, 20, 14, 16];
     const tent: Sesion[] = [];
     for (let k = 0; k < n; k++) {
       let ubicada: Sesion | null = null;
@@ -270,6 +279,7 @@ export class GeneradorVoraz implements GeneradorHorario {
       for (const dia of dias) {
         for (const h of dia === 5 ? [7, 9, 11] : horasLV) {
           if (!d.disponibilidad.some((b) => b.dia === dia && b.inicio <= h && b.fin >= h + p.duracionSesion)) continue;
+          if (oc.docenteOcupado(d.id, dia, h)) continue;
           if (evitarCruces && oc.efectoNivel(nivel, g.jornada, g.cursoId, dia, h).cruza) continue;
           for (const aula of aulas) {
             if (!this.validador.validar({ sesionId: null, grupoId: g.id, dia, inicio: h, docenteId: d.id, aulaId: aula.id }, [...ya, ...tent], p, e.catalogo).length) {
@@ -326,6 +336,10 @@ class Ocupacion {
       this.docenteDia.set(k, [...(this.docenteDia.get(k) ?? []), s.inicio]);
     }
   }
+  /** Marca horas del docente como no disponibles para clase (horario de atención). */
+  bloquearDocente(id: string, dia: number, inicio: number, fin: number) {
+    for (let h = inicio; h < fin; h++) this.docente.add(`${id}|${dia}|${h}`);
+  }
   docenteOcupado(id: string, dia: number, h: number) {
     for (let x = h; x < h + this.dur; x++) if (this.docente.has(`${id}|${dia}|${x}`)) return true;
     return false;
@@ -342,8 +356,10 @@ class Ocupacion {
     let huecos = 0;
     for (let i = 1; i < inicios.length; i++) {
       const libre = inicios[i] - (inicios[i - 1] + this.dur);
-      // el almuerzo (11–14 en la grilla de 2 h) no cuenta como hueco
-      if (libre > 0 && !(inicios[i - 1] + this.dur <= 12 && inicios[i] >= 13 && libre <= 3)) huecos += Math.ceil(libre / this.dur);
+      // el bloque no asignable (almuerzo) no cuenta como hueco
+      const ini = inicios[i - 1] + this.dur;
+      const almuerzo = this.e.parametros.bloquesNoAsignables.reduce((t, b) => t + Math.max(0, Math.min(b.fin, inicios[i]) - Math.max(b.inicio, ini)), 0);
+      if (libre - almuerzo > 0) huecos += Math.ceil((libre - almuerzo) / this.dur);
     }
     const sobrecarga = l.length >= 3 ? 1 : 0;
     return { cruza, huecos, sobrecarga };

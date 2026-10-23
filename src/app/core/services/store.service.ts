@@ -3,7 +3,7 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { PARAMETROS_POR_DEFECTO, estadoInicial, VERSION_ESQUEMA } from '../data/seed';
 import {
-  Aula, BloqueDisponible, Curso, Dia, Docente, EstadoApp, Grupo, IncumplimientoBlando, Observacion, OfertaCurso,
+  Aula, BloqueDisponible, Curso, Dia, Docente, EstadoApp, Grupo, HorarioAtencion, IncumplimientoBlando, Observacion, OfertaCurso,
   ParametrosProgramacion, PeriodoAcademico, Rol, Sesion, Usuario, VersionHorario, Violacion,
 } from '../models';
 import { evaluarBlandas } from '../rules/reglas-blandas';
@@ -314,6 +314,7 @@ export class StoreService {
       aulas: this.estado().aulas,
       parametros: per.parametros,
       catalogo: this.catalogo(),
+      bloqueosDocente: this.bloqueosAtencion(per.id),
     });
     const v: VersionHorario = {
       id: nuevoId('ver'),
@@ -411,6 +412,7 @@ export class StoreService {
       parametros: this.parametrosDe(v),
       catalogo: this.catalogo(),
       sesionesFijas: otros,
+      bloqueosDocente: this.bloqueosAtencion(v.periodoId),
     });
     const nuevas = r.sesiones;
     const okTodas = nuevas.length > 0;
@@ -422,6 +424,105 @@ export class StoreService {
     this.reemplazarVersion({ ...v, sesiones: [...otros, ...nuevas], pendientes: v.pendientes.filter((x) => x.grupoId !== grupoId) });
     this.log('Ubicación automática de pendiente', `${this.etiquetaGrupo(grupoId)}: ${nuevas.length} sesión(es) (v${v.numero})`);
     return { ok: true, mensaje: `${this.etiquetaGrupo(grupoId)} quedó ubicado con ${nuevas.length} sesión(es).` };
+  }
+
+  // ------------------------------------------------------------------ horario de atención (cambio de la validación)
+  /** Horarios de atención del periodo activo. */
+  readonly horariosAtencion = computed(() => (this.estado().horariosAtencion ?? []).filter((h) => h.periodoId === this.periodo().id));
+
+  atencionDe(docenteId: string, cursoId: string, periodoId = this.periodo().id) {
+    return (this.estado().horariosAtencion ?? []).find((h) => h.periodoId === periodoId && h.docenteId === docenteId && h.cursoId === cursoId) ?? null;
+  }
+
+  /** Bloques de atención con hora fija: el generador no programa clases del docente encima. */
+  private bloqueosAtencion(periodoId: string) {
+    return (this.estado().horariosAtencion ?? [])
+      .filter((h) => h.periodoId === periodoId && h.modo === 'HORARIO' && h.dia !== null && h.inicio !== null && h.fin !== null)
+      .map((h) => ({ docenteId: h.docenteId, dia: h.dia!, inicio: h.inicio!, fin: h.fin! }));
+  }
+
+  /**
+   * Materias que dicta el docente en el periodo: las de sus sesiones en la versión vigente (borrador o publicada)
+   * y las de los grupos donde es docente preferente (asignación acordada antes de generar).
+   */
+  cursosDictados(docenteId: string, periodoId = this.periodo().id): Curso[] {
+    const v = this.estado().versiones.filter((x) => x.periodoId === periodoId);
+    const vigente = v.find((x) => x.estado === 'BORRADOR') ?? v.find((x) => x.estado === 'PUBLICADA');
+    const ids = new Set<string>();
+    for (const s of vigente?.sesiones ?? []) if (s.docenteId === docenteId) ids.add(this.catalogo().grupo(s.grupoId)?.cursoId ?? '');
+    for (const g of this.estado().grupos) if (g.periodoId === periodoId && g.estado === 'ABIERTO' && g.docentePreferido === docenteId) ids.add(g.cursoId);
+    ids.delete('');
+    return [...ids].map((id) => this.catalogo().curso(id)!).filter(Boolean).sort((a, b) => a.nivel - b.nivel || a.nombre.localeCompare(b.nombre));
+  }
+
+  /** Clases del docente que se cruzan con un bloque (en la versión vigente del periodo). */
+  private cruceConClases(docenteId: string, dia: Dia, inicio: number, fin: number, periodoId: string) {
+    const v = this.estado().versiones.filter((x) => x.periodoId === periodoId);
+    const vigente = v.find((x) => x.estado === 'BORRADOR') ?? v.find((x) => x.estado === 'PUBLICADA');
+    if (!vigente) return null;
+    const dur = this.parametrosDe(vigente).duracionSesion;
+    return vigente.sesiones.find((s) => s.docenteId === docenteId && s.dia === dia && s.inicio < fin && inicio < s.inicio + dur) ?? null;
+  }
+
+  /** Reglas del horario de atención: 1 o 2 horas, dentro de la franja, fuera del almuerzo y de sus clases. */
+  validarAtencion(h: HorarioAtencion): string[] {
+    if (h.modo === 'ACORDAR') return [];
+    const err: string[] = [];
+    const p = this.estado().periodos.find((x) => x.id === h.periodoId)!.parametros;
+    if (h.dia === null || h.inicio === null || h.fin === null) return ['Elija día, hora de inicio y duración.'];
+    const dur = h.fin - h.inicio;
+    if (dur < 1 || dur > 2) err.push('El horario de atención es de 1 o 2 horas a la semana.');
+    const franja = h.dia === 5 ? p.franjaSabado : p.franjaLunesViernes;
+    if (h.inicio < franja.inicio || h.fin > franja.fin) err.push(`Debe quedar dentro de la franja hábil (${rango(franja.inicio, franja.fin)}).`);
+    const b = p.bloquesNoAsignables.find((x) => x.inicio < h.fin! && h.inicio! < x.fin);
+    if (b) err.push(`Cruza el bloque de almuerzo ${rango(b.inicio, b.fin)}.`);
+    const d = this.catalogo().docente(h.docenteId);
+    if (d && !d.disponibilidad.some((x) => x.dia === h.dia && x.inicio <= h.inicio! && x.fin >= h.fin!)) err.push(`${d.nombre} no está disponible el ${nombreDiaMin(h.dia)} ${rango(h.inicio, h.fin)}.`);
+    const clase = this.cruceConClases(h.docenteId, h.dia, h.inicio, h.fin, h.periodoId);
+    if (clase) err.push(`Se cruza con su clase de ${this.etiquetaGrupo(clase.grupoId)} (${nombreDiaMin(clase.dia)} ${rango(clase.inicio, clase.inicio + p.duracionSesion)}).`);
+    const otra = (this.estado().horariosAtencion ?? []).find(
+      (x) => x.id !== h.id && x.periodoId === h.periodoId && x.docenteId === h.docenteId && x.modo === 'HORARIO' && x.dia === h.dia && x.inicio! < h.fin! && h.inicio! < x.fin!,
+    );
+    if (otra) err.push(`Se cruza con su horario de atención de ${this.catalogo().curso(otra.cursoId)?.nombre}.`);
+    return err;
+  }
+
+  /** Aviso cuando una clase (generada o movida después) quedó encima del horario de atención. */
+  avisoAtencion(h: HorarioAtencion): string | null {
+    if (h.modo !== 'HORARIO' || h.dia === null || h.inicio === null || h.fin === null) return null;
+    const clase = this.cruceConClases(h.docenteId, h.dia, h.inicio, h.fin, h.periodoId);
+    return clase ? `Ahora se cruza con ${this.etiquetaGrupo(clase.grupoId)}; ajuste el horario de atención.` : null;
+  }
+
+  guardarAtencion(h: HorarioAtencion): Resultado {
+    const s = this.sesion.actual();
+    const propio = s?.rol === 'DOCENTE' && s.docenteId === h.docenteId;
+    if (!propio) this.exigir('COORDINADOR');
+    const err = this.validarAtencion(h);
+    if (err.length) return { ok: false, mensaje: 'No se puede guardar el horario de atención', errores: err };
+    const limpio: HorarioAtencion = h.modo === 'ACORDAR' ? { ...h, dia: null, inicio: null, fin: null } : h;
+    this.estado.update((e) => ({
+      ...e,
+      horariosAtencion: [...(e.horariosAtencion ?? []).filter((x) => !(x.periodoId === h.periodoId && x.docenteId === h.docenteId && x.cursoId === h.cursoId)), limpio],
+    }));
+    this.log('Horario de atención', `${this.catalogo().docente(h.docenteId)?.nombre} · ${this.catalogo().curso(h.cursoId)?.nombre}: ${this.textoAtencion(limpio)}`);
+    return { ok: true };
+  }
+
+  eliminarAtencion(h: HorarioAtencion): Resultado {
+    const s = this.sesion.actual();
+    const propio = s?.rol === 'DOCENTE' && s.docenteId === h.docenteId;
+    if (!propio) this.exigir('COORDINADOR');
+    this.estado.update((e) => ({ ...e, horariosAtencion: (e.horariosAtencion ?? []).filter((x) => x.id !== h.id) }));
+    this.log('Horario de atención', `${this.catalogo().docente(h.docenteId)?.nombre} · ${this.catalogo().curso(h.cursoId)?.nombre}: sin definir`);
+    return { ok: true };
+  }
+
+  textoAtencion(h: HorarioAtencion | null): string {
+    if (!h) return 'Sin definir';
+    if (h.modo === 'ACORDAR') return `Acordar con el docente${h.lugar ? ' · ' + h.lugar : ''}`;
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return `${dias[h.dia!]} ${rango(h.inicio!, h.fin!)}${h.lugar ? ' · ' + h.lugar : ''}`;
   }
 
   // ------------------------------------------------------------------ versiones (CU-14, CU-15)
@@ -637,12 +738,35 @@ export class StoreService {
         pendientes: [],
       },
     ];
+    e.horariosAtencion = atencionesDeDemostracion(e, r.sesiones, per.parametros.duracionSesion);
     e.bitacora = [
       { id: 'log-0', fecha, usuario: 'Diana Marcela Rojas', rol: 'COORDINADOR', accion: 'Publicación de horario', detalle: 'Versión 1 de 2026-1 publicada como oficial' },
       { id: 'log-1', fecha: '2026-07-01T13:00:00.000Z', usuario: 'Sistema', rol: 'SISTEMA', accion: 'Carga de datos de demostración', detalle: 'Catálogo 2026-2 (plan de estudios de Ingeniería de Sistemas)' },
     ];
     return e;
   }
+}
+
+/**
+ * Horarios de atención de demostración para Germán Augusto Neuta (docente de Legislación que validó el
+ * prototipo): en 2026-1, una hora fija libre el viernes para Legislación y «acordar» para su electiva;
+ * en 2026-2, viernes 12:00–13:00 para Legislación y «acordar» para la Electiva profesional II.
+ */
+function atencionesDeDemostracion(e: EstadoApp, sesiones2026_1: Sesion[], dur: number): HorarioAtencion[] {
+  const german = e.docentes.find((d) => d.nombre === 'Germán Augusto Neuta');
+  if (!german) return [];
+  const curso = (nombre: string) => e.cursos.find((c) => c.nombre === nombre)?.id ?? '';
+  const legislacion = curso('Legislación, normatividad y ciudadanía');
+  const suyas = sesiones2026_1.filter((s) => s.docenteId === german.id);
+  const libre = [12, 11, 17, 15, 7].find((h) => !suyas.some((s) => s.dia === 4 && s.inicio < h + 1 && h < s.inicio + dur)) ?? 12;
+  const electiva1 = suyas.map((s) => e.grupos.find((g) => g.id === s.grupoId)?.cursoId).find((id) => id && id !== legislacion);
+  const out: HorarioAtencion[] = [
+    { id: 'ate-1', periodoId: 'per-2026-1', docenteId: german.id, cursoId: legislacion, modo: 'HORARIO', dia: 4, inicio: libre, fin: libre + 1, lugar: 'Sala de profesores, bloque A piso 3' },
+    { id: 'ate-3', periodoId: 'per-2026-2', docenteId: german.id, cursoId: legislacion, modo: 'HORARIO', dia: 4, inicio: 12, fin: 13, lugar: 'Sala de profesores, bloque A piso 3' },
+    { id: 'ate-4', periodoId: 'per-2026-2', docenteId: german.id, cursoId: curso('Electiva profesional II'), modo: 'ACORDAR', dia: null, inicio: null, fin: null, lugar: 'Escribir a gneuta@ueb.demo' },
+  ];
+  if (electiva1) out.splice(1, 0, { id: 'ate-2', periodoId: 'per-2026-1', docenteId: german.id, cursoId: electiva1, modo: 'ACORDAR', dia: null, inicio: null, fin: null, lugar: 'Escribir a gneuta@ueb.demo' });
+  return out.filter((h) => h.cursoId);
 }
 
 export function validarParametros(p: ParametrosProgramacion): string[] {

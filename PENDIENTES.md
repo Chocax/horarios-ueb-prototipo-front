@@ -21,15 +21,6 @@ Mientras Programación I G1 esté pendiente, **publicar se bloquea** y lista la 
 > [!TIP]
 > En el código: el cupo 44 está en `src/app/core/data/seed.ts` (línea con `cupoG = variante === 'actual' && c.nombre === 'Programación I'`), y la única docente diurna de Investigación tecnológica está en `HABILITADOS['Investigación tecnológica y de ingeniería']`. Para que la demo arranque sin pendiente ni aviso, basta con quitar la condición del cupo y agregar un docente diurno a esa lista.
 
----|---|---|---|
-| **Programación I G1** (diurno) | R4 | Su cupo planeado es 44 y la sala de cómputo más grande tiene 35 puestos. | *Grupos y demanda* → clic en `G1 · Diurna · 44` → cupo **35** → Guardar → *Tablero* → **Reintentar**. Otra opción: *Importar datos → Aulas* → `aulas_nuevas.csv` (sala F-305 de 45 puestos) → Reintentar. |
-| **Investigación tecnológica G2** (diurno) | R5 · norma de dos docentes | La única docente diurna habilitada (Mónica Liliana Bernal) ya dicta el G1, y la norma pide docentes distintos en el día. | *Importar datos → Docentes* → `docentes_nuevos.csv` → Confirmar; pestaña *Disponibilidad* → `disponibilidad_docentes_nuevos.csv` → Confirmar → *Tablero* → **Reintentar**. Otra opción: *Docentes* → habilitar a otro docente diurno para el curso. |
-
-Mientras estén pendientes, **publicar se bloquea** y lista las dos causas (prueba de RF-12).
-
-> [!TIP]
-> En el código: el cupo 44 está en `src/app/core/data/seed.ts` (línea con `cupoG = variante === 'actual' && c.nombre === 'Programación I'`), y la única docente diurna de Investigación tecnológica está en `HABILITADOS['Investigación tecnológica y de ingeniería']`. Para que la demo arranque sin pendientes, basta con quitar la condición del cupo y agregar un docente diurno a esa lista.
-
 ---
 
 ## 2. Supuestos que hay que confirmar con el cliente
@@ -45,6 +36,7 @@ Mientras estén pendientes, **publicar se bloquea** y lista las dos causas (prue
 | S-7 | Segundo grupo nocturno solo en Matemáticas básicas y Cálculo diferencial | `DOS_GRUPOS_NOCHE` en `seed.ts` | Agregar el nombre del curso a la lista, o crear el G4 en *Grupos y demanda* con **+** |
 | S-8 | Demanda estimada por curso es ficticia | Ofertas en `seed.ts` | *Grupos y demanda* → columna Demanda, o *Importar → Cursos* con la columna `demanda` |
 | S-9 | Vinculación, escalafón, disponibilidad y correos de los docentes son ficticios; 23 nombres son inventados (marcados con `// (*)` en `seed.ts`) | `seed.ts` | *Docentes* o *Importar → Docentes / Disponibilidad* |
+| S-10 | **Horario de atención** (pedido por el profesor Germán Neuta en la validación): 1 o 2 h por materia, fuera del almuerzo y sin cruzarse con sus clases; si el docente tiene poca disponibilidad puede quedar «acordar con el docente» | `validarAtencion()` en `store.service.ts` | Confirmar con el Programa si debe ser obligatorio para todos los docentes y si el estudiante lo consulta en su horario |
 
 ---
 
@@ -68,6 +60,7 @@ Si el tercero del video pide algo, la mayoría se hace desde la misma app. Ideas
 | «Muéstrenme solo una materia y sus grupos» | *Tablero* → **Por curso** (o clic en el nombre del curso arriba de la grilla) → clic en un grupo para aislarlo | RF-10 y RF-19 |
 | «¿Qué horario tiene este grupo?» | *Grupos y demanda* → clic en el grupo: ficha con días, horas, aula y docente | RF-07 |
 | «Pongan las dos clases del grupo el mismo día» | Se rechaza con **R8** (un grupo solo tiene una sesión por día) | Regla dura del Programa |
+| «Quiero dejar mi horario de atención» (cambio pedido en la validación) | Como docente: *Mi disponibilidad* → tarjeta **Horario de atención** → por materia: *Horario fijo* (día, hora, 1 o 2 h, lugar) o *Acordar con el docente* (cómo contactarlo) → Guardar. Como coordinadora: *Docentes* → abrir → pestaña **Horario de atención** | RF-23 / CU-21; no se cruza con sus clases ni con el almuerzo y el generador no programa clases encima |
 | «Que el comité diga que hay que cambiar algo» | Entrar como comité → *Revisión* → *Requiere ajustes* + observación | RF-20 |
 
 Después de cualquier cambio de parámetros, la propuesta ya generada **no se modifica sola**: hay que **Regenerar propuesta** o ajustar en el tablero.
@@ -84,7 +77,7 @@ Después de cualquier cambio de parámetros, la propuesta ya generada **no se mo
 | C-4 | Agregar o quitar docentes | `seed.ts` → lista `D` (nombre, vinculación, escalafón, disponibilidad, horas opcionales) |
 | C-5 | Más grupos nocturnos | `seed.ts` → `DOS_GRUPOS_NOCHE` |
 | C-6 | Franjas que usa el generador (p. ej. noche desde las 16:00) | `src/app/core/scheduling/generador.ts` → `const horasLV = diurna ? [7, 9, 14, 16] : [18, 20];` (agregar `16` en la parte nocturna) |
-| C-7 | Pesos del generador (qué tanto evita días seguidos, sábados, huecos, cruces) | `generador.ts` → método `candidatos()` (`consecutivos * 6`, sábado `12`/`3`, `huecos * 4`, cruce `40`) |
+| C-7 | Pesos del generador (qué tanto evita días seguidos, sábados, patrones distintos de L-X / M-J / L-X-V, huecos, cruces) | `generador.ts` → constante `PESO_PATRON` (12) y método `candidatos()` (`consecutivos * 6`, sábado `12`/`3`, `huecos * 4`, cruce `40`) |
 | C-8 | Reglas duras nuevas | `src/app/core/rules/reglas-duras.ts`: nueva clase que implemente `ReglaDura` y agregarla a `REGLAS_DURAS` |
 | C-9 | Reglas blandas nuevas | `src/app/core/rules/reglas-blandas.ts` y la lista `REGLAS_BLANDAS` de `core/data/trazabilidad.ts` |
 | C-10 | Valores por defecto de los parámetros | `seed.ts` → `PARAMETROS_POR_DEFECTO` |
@@ -92,7 +85,7 @@ Después de cualquier cambio de parámetros, la propuesta ya generada **no se mo
 | C-12 | Volver obligatoria la norma de dos docentes en el día (que deje el grupo pendiente en vez de avisar B6) | `generador.ts` → en `generar()`, usar solo la primera lista de `niveles` (docentes que no dictan otro grupo diurno del curso) |
 
 > [!IMPORTANT]
-> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (hoy está en 7; pasarlo a 8) para que los navegadores que ya abrieron la demo descarten los datos viejos.
+> Si se cambian los datos de `seed.ts`, hay que subir `VERSION_ESQUEMA` en ese mismo archivo (hoy está en 8; pasarlo a 9) para que los navegadores que ya abrieron la demo descarten los datos viejos.
 
 Flujo para publicar un cambio: `git add .` → `git commit -m "fix: …"` → `git push` → Vercel lo despliega solo en uno o dos minutos.
 

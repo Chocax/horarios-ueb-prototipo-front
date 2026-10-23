@@ -164,6 +164,25 @@ export interface IncumplimientoBlando {
   detalle: string;
 }
 
+/**
+ * Horario de atención (cambio solicitado en la validación con el docente de Legislación): espacio semanal de
+ * 1 o 2 horas por materia para tutorías, preguntas u orientación. Si el docente tiene poca disponibilidad,
+ * puede quedar como «acordar con el docente».
+ */
+export type ModoAtencion = 'HORARIO' | 'ACORDAR';
+export interface HorarioAtencion {
+  id: string;
+  periodoId: string;
+  docenteId: string;
+  cursoId: string;
+  modo: ModoAtencion;
+  dia: Dia | null;
+  inicio: number | null;
+  fin: number | null;
+  /** Lugar o indicación (sala de profesores, enlace de reunión, correo…). */
+  lugar: string;
+}
+
 export interface EstadoApp {
   version: number; // versión del esquema de datos guardado
   periodos: PeriodoAcademico[];
@@ -176,6 +195,7 @@ export interface EstadoApp {
   observaciones: Observacion[];
   usuarios: Usuario[];
   bitacora: RegistroBitacora[];
+  horariosAtencion: HorarioAtencion[];
   periodoActivoId: string;
 }
 

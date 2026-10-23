@@ -40,8 +40,17 @@ import { ScheduleGrid } from '../../shared/schedule-grid';
         @if (vp(); as v) {
           <div class="print-head"><strong>Horario de {{ d.nombre }}</strong> — {{ store.periodo().codigo }}, versión {{ v.numero }} publicada el {{ fecha(v.fechaPublicacion) }}</div>
           <p class="caption no-print" style="margin-bottom:10px">Versión {{ v.numero }} publicada el {{ fecha(v.fechaPublicacion) }}</p>
-          <div style="overflow-x:auto"><app-schedule-grid [sesiones]="sesiones()" [parametros]="store.parametrosDe(v)" modo="docente" /></div>
+          <div style="overflow-x:auto"><app-schedule-grid [sesiones]="sesiones()" [parametros]="store.parametrosDe(v)" modo="docente" [extras]="extrasAtencion()" /></div>
 
+          <div class="card atencion" style="margin-top:16px">
+            <div class="row between" style="margin-bottom:8px">
+              <h2 style="font-size:16px">Horario de atención</h2>
+              <a class="btn btn-sm" routerLink="/mi-disponibilidad" fragment="atencion"><app-icon name="clock" [size]="14" /> Editar</a>
+            </div>
+            @for (c of cursosDictados(); track c.id) {
+              <div class="row between linea"><span>{{ c.nombre }}</span><span class="caption">{{ store.textoAtencion(store.atencionDe(d.id, c.id)) }}</span></div>
+            } @empty { <p class="muted">Sin materias asignadas.</p> }
+          </div>
           <div class="tabla-wrap" style="margin-top:16px">
             <table class="tabla">
               <thead><tr><th>Día</th><th>Hora</th><th>Curso</th><th>Grupo</th><th>Aula</th></tr></thead>
@@ -68,7 +77,10 @@ import { ScheduleGrid } from '../../shared/schedule-grid';
       }
     </div>
   `,
-  styles: [`.print-head { display: none; } @media print { .print-head { display: block; margin-bottom: 8px; font-size: 12px; } }`],
+  styles: [
+    `.print-head { display: none; } @media print { .print-head { display: block; margin-bottom: 8px; font-size: 12px; } }
+     .linea { padding: 7px 0; border-bottom: 1px solid var(--hairline); font-size: 13.5px; } .linea:last-child { border-bottom: none; }`,
+  ],
 })
 export class MiHorario {
   protected readonly store = inject(StoreService);
@@ -90,6 +102,14 @@ export class MiHorario {
     const ids = new Set(this.store.estado().versiones.filter((v) => v.estado === 'PUBLICADA').map((v) => v.periodoId));
     return [...this.store.periodos()].reverse().find((p) => ids.has(p.id) && p.id !== this.store.periodo().id) ?? null;
   });
+  protected readonly cursosDictados = computed(() => (this.docente() ? this.store.cursosDictados(this.docente()!.id) : []));
+  /** Horario de atención con hora fija, dibujado en la grilla. */
+  protected readonly extrasAtencion = computed(() =>
+    this.store
+      .horariosAtencion()
+      .filter((h) => h.docenteId === this.docente()?.id && h.modo === 'HORARIO' && h.dia !== null)
+      .map((h) => ({ dia: h.dia!, inicio: h.inicio!, fin: h.fin!, titulo: 'Atención', detalle: this.store.catalogo().curso(h.cursoId)?.nombre ?? '' })),
+  );
   dia = nombreDia;
   curso = (id: string) => this.store.catalogo().curso(this.store.catalogo().grupo(id)?.cursoId ?? '')?.nombre ?? '';
   grupo = (id: string) => {

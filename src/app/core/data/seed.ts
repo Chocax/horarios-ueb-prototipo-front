@@ -10,7 +10,7 @@ import { hashClave } from '../util';
 export const PARAMETROS_POR_DEFECTO: ParametrosProgramacion = {
   franjaLunesViernes: { inicio: 7, fin: 22 },
   franjaSabado: { inicio: 7, fin: 13 },
-  bloquesNoAsignables: [{ inicio: 12, fin: 13 }],
+  bloquesNoAsignables: [{ inicio: 13, fin: 14 }], // almuerzo
   duracionSesion: 2,
   cupoMaximo: 40,
   toleranciaCupo: 10,
@@ -147,9 +147,9 @@ const LV = [0, 1, 2, 3, 4] as Dia[];
 const SAB: BloqueDisponible = { dia: 5, inicio: 7, fin: 13 };
 const todoElDia = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 7, fin: 22 })), SAB];
 const soloNoche = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 18, fin: 22 })), SAB];
-const mananaYNoche = (): BloqueDisponible[] => LV.flatMap((dia) => [{ dia, inicio: 7, fin: 12 }, { dia, inicio: 18, fin: 22 }]);
-const tardeYNoche = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 13, fin: 22 })), SAB];
-const tardeNocheSinSabado = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 13, fin: 22 }));
+const mananaYNoche = (): BloqueDisponible[] => LV.flatMap((dia) => [{ dia, inicio: 7, fin: 13 }, { dia, inicio: 18, fin: 22 }]);
+const tardeYNoche = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 14, fin: 22 })), SAB];
+const tardeNocheSinSabado = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 14, fin: 22 }));
 const diurno = (): BloqueDisponible[] => [...LV.map((dia) => ({ dia, inicio: 7, fin: 18 })), SAB];
 const diurnoSinSabado = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 7, fin: 18 }));
 const nocheEntreSemana = (): BloqueDisponible[] => LV.map((dia) => ({ dia, inicio: 18, fin: 22 }));
@@ -417,7 +417,7 @@ export function construirPeriodos(): PeriodoAcademico[] {
   return [p(2026, 1, 'CERRADO'), p(2026, 2, 'ABIERTO')];
 }
 
-export const VERSION_ESQUEMA = 7;
+export const VERSION_ESQUEMA = 8;
 
 /** Estado inicial sin versiones; el store genera y publica el horario histórico de 2026-1 al arrancar. */
 export function estadoInicial(): EstadoApp {
@@ -438,6 +438,7 @@ export function estadoInicial(): EstadoApp {
     observaciones: [],
     usuarios: construirUsuarios(docentes),
     bitacora: [],
+    horariosAtencion: [],
     periodoActivoId: 'per-2026-2',
   };
 }

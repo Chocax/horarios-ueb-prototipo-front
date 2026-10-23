@@ -42,7 +42,7 @@ Todos los datos son **de demostración**. El plan de estudios es el de Ingenier�
 - **Docentes:** 55, cada curso con al menos dos docentes diurnos habilitados y uno nocturno (salvo el caso de prueba). Vinculación TC, ¾, ½ o ¼ con 16, 12, 8 y 4 horas máximas [confirmar con la Facultad]. Los nombres reales vienen del Excel de referencia; los demás son ficticios.
 - **Aulas:** 86 en los bloques que usa la Facultad. A: pisos 2–4, salas de cómputo (la Facultad está en el piso 3). B: pisos 2–3, salones 1–5 de sillas y tablero y 6–13 de cómputo. I: piso 1 (1–10) y pisos 2–3 (1–4), sillas y tablero. F: pisos 2–3 de cómputo, laboratorios de redes y de seguridad en el piso 2, y pisos 4, 5 y 7 de sillas y tablero. E: piso 1 con mobiliario móvil. G: laboratorios de física (G-LAB).
 - **Horarios generados:** el generador arma patrones como los de la Universidad (lunes-miércoles, martes-jueves, lunes-miércoles-viernes, misma hora), evita cruces entre cursos del mismo semestre y jornada, y compacta el día. La jornada nocturna va de 18:00 a 22:00 y usa el sábado en la mañana. Un grupo nunca tiene dos sesiones el mismo día (R8); en 2.º y 3.º semestre nocturno las sesiones no caben sin un cruce, y el panel de blandas lo reporta (B4).
-- **Parámetros:** L–V 07:00–22:00, sábado 07:00–13:00, bloque no asignable 12:00–13:00, sesiones de 2 h, cupo 40 + 10 % = 44, mínimo 10 inscritos, 1 a 4 sesiones por semana.
+- **Parámetros:** L–V 07:00–22:00, sábado 07:00–13:00, bloque no asignable (almuerzo) 13:00–14:00, y en el día se programan clases de 07–09, 09–11, 11–13, 14–16 y 16–18, sesiones de 2 h, cupo 40 + 10 % = 44, mínimo 10 inscritos, 1 a 4 sesiones por semana.
 - **Casos de prueba de la demo:** al generar 2026-2 queda un grupo sin ubicar, *Programación I G1* (cupo 44 y la sala de cómputo más grande es de 35, R4). Además, *Investigación tecnológica* solo tiene una docente diurna habilitada, así que dicta G1 y G2: el generador lo acepta y lo reporta como restricción blanda **B6** (la norma de dos docentes distintos en el día es ideal, no obligatoria).
 - **Docentes con usuario:** Edward Paul Guillén Pinto (noche: Redes I, Redes II, Investigación tecnológica y Seguridad), Cristian Fabián Vanegas (tarde-noche: Fundamentos de programación, Dirección y planeación, Gestión de proyectos y Proyecto núcleo II), Saudiel Orlando López (día, sábados y viernes en la noche: Historia y filosofía, Matemáticas discretas, Gestión de tecnología, Seminario de investigación y Lógica matemática) y Germán Augusto Neuta (viernes y sábados: Legislación y una Electiva profesional). Estas asignaciones se guardan como *docente preferente* del grupo y el generador las intenta primero.
 
@@ -105,7 +105,7 @@ _Rol: Coordinador · Cubre: CU-05 · RF-04_
 
 **Resultado esperado**
 - Su disponibilidad es nocturna (18:00–22:00) y sábados en la mañana.
-- Las horas fuera de la franja y el bloque de 12:00 no se pueden marcar.
+- Las horas fuera de la franja y el bloque de almuerzo (13:00) no se pueden marcar.
 - En el tablero, solo los docentes habilitados aparecen como opción para un curso (R5).
 
 ### P-05 · Cursos y aulas
@@ -150,7 +150,7 @@ _Rol: Coordinador · Cubre: CU-10 · CU-11 · RF-08 · RF-09_
 _Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-10_
 
 **Pasos**
-1. En el tablero (semestre 1), arrastre una sesión de la mañana hasta las 12:00 del mismo día.
+1. En el tablero (semestre 1), arrastre una sesión de la mañana hasta las 12:00 del mismo día: la sesión de 12:00 a 14:00 cruzaría el almuerzo (13:00–14:00).
 2. Repita arrastrando una sesión al sábado a las 15:00.
 
 **Resultado esperado**
@@ -306,7 +306,8 @@ _Rol: Coordinador · Cubre: CU-16 · RF-14_
 2. Pulse **Exportar CSV**.
 
 **Resultado esperado**
-- Porcentaje de ocupación por aula, horas asignadas frente al máximo de cada docente y grupos con inscritos por debajo del mínimo.
+- Ocupación de las aulas por franja (mañana, tarde, noche y sábado) y por aula, horas asignadas frente al máximo de cada docente y grupos con inscritos por debajo del mínimo.
+- El CSV de aulas trae una columna por franja.
 
 ### P-22 · Periodos independientes
 _Rol: Coordinador · Cubre: CU-03 · RF-16 · RF-01_
@@ -388,8 +389,27 @@ _Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-09 · RF-10_
 2. Abra una de sus sesiones y, en el panel, cámbiela al día de la otra sesión del grupo, a una hora libre. Pulse **Validar y aplicar** (o arrástrela a ese día).
 
 **Resultado esperado**
-- Se rechaza con R8: «… ya tiene clase el jueves (16:00–18:00); un grupo solo puede tener una sesión por día».
+- Se rechaza con R8: «… ya tiene clase el jueves (14:00–16:00); un grupo solo puede tener una sesión por día».
 - El generador tampoco pone dos sesiones de un grupo el mismo día, ni siquiera el sábado.
+
+### P-29 · Horario de atención por materia (cambio pedido en la validación)
+_Rol: Docente y coordinador · Cubre: CU-21 · RF-23_
+
+**Pasos**
+1. Entre como **gneuta@ueb.demo** (Germán Augusto Neuta). Menú **Mi disponibilidad** → tarjeta **Horario de atención**: hay una fila por cada materia que dicta.
+2. En *Legislación, normatividad y ciudadanía* deje **Horario fijo**, elija el día, la hora de inicio, la duración (1 o 2 horas) y el lugar; pulse **Guardar**.
+3. Con el periodo 2026-1 seleccionado, intente ponerlo encima de una de sus clases (viernes 07:00, 2 horas) y guarde.
+4. En *Electiva profesional II* elija **Acordar con el docente** y escriba cómo contactarlo.
+5. Abra **Mi horario** (periodo 2026-1): el horario de atención aparece como un bloque punteado y en la tarjeta de abajo.
+6. Entre como coordinadora: **Docentes** → Germán Augusto Neuta → pestaña **Horario de atención**. Cambie una fila y guarde.
+7. Genere o regenere la propuesta de 2026-2 y abra la ficha de un grupo de Legislación en **Grupos y demanda**.
+
+**Resultado esperado**
+- Se acepta un espacio de 1 o 2 horas dentro de la franja, fuera del almuerzo y de la disponibilidad marcada.
+- Si se cruza con una clase se rechaza: «Se cruza con su clase de Legislación… G1 (viernes 07:00–09:00)».
+- Con «Acordar con el docente» no se pide hora; se muestra «Acordar con el docente · Escribir a …».
+- La coordinadora ve y edita lo mismo que el docente; la bitácora registra quién lo cambió.
+- El generador no programa clases de ese docente encima de su horario de atención, y la ficha del grupo muestra el horario de atención del docente.
 
 ## 7. Matriz de trazabilidad
 | RF | CU | Pruebas |
@@ -416,6 +436,7 @@ _Rol: Coordinador · Cubre: CU-12 · CU-11 · RF-09 · RF-10_
 | RF-20 | CU-20 | P-15, P-16 |
 | RF-21 | CU-17 | P-20 |
 | RF-22 | CU-02 | P-01, P-24 |
+| RF-23 | CU-21 | P-29 |
 
 ## 8. Solución de problemas
 | Situación | Qué hacer |

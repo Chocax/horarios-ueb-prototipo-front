@@ -156,7 +156,7 @@ export class Periodos {
     return this.store.estado().versiones.filter((v) => v.periodoId === pid).length;
   }
   agregarBloque() {
-    this.p.update((x) => ({ ...x, bloquesNoAsignables: [...x.bloquesNoAsignables, { inicio: 12, fin: 13 }] }));
+    this.p.update((x) => ({ ...x, bloquesNoAsignables: [...x.bloquesNoAsignables, { inicio: 13, fin: 14 }] }));
   }
   quitarBloque(i: number) {
     this.p.update((x) => ({ ...x, bloquesNoAsignables: x.bloquesNoAsignables.filter((_, j) => j !== i) }));

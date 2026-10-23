@@ -20,7 +20,7 @@ import { Modal } from '../../shared/modal';
         <div>
           <div class="eyebrow">CU-08 · CU-09 · RF-07 · RF-18</div>
           <h1>Grupos y demanda</h1>
-          <p class="serif sub">Norma del programa: en el día cada curso abre al menos dos grupos (G1 y G2) con docentes distintos; en la noche, uno (G3) y, si la demanda lo justifica, un segundo (G4). Registre la demanda estimada por curso; el sistema sugiere demanda ÷ {{ p().cupoMaximo }} grupos, redondeando hacia arriba. Puede ajustar la sugerencia mientras cada grupo quede dentro del cupo efectivo de {{ efectivo() }}.</p>
+          <p class="serif sub">Norma del programa: en el día cada curso abre al menos dos grupos (G1 y G2), idealmente con docentes distintos; en la noche, uno (G3) y, si la demanda lo justifica, un segundo (G4). Registre la demanda estimada por curso; el sistema sugiere demanda ÷ {{ p().cupoMaximo }} grupos, redondeando hacia arriba. Puede ajustar la sugerencia mientras cada grupo quede dentro del cupo efectivo de {{ efectivo() }}.</p>
         </div>
       </div>
 
@@ -114,6 +114,12 @@ import { Modal } from '../../shared/modal';
                 <p class="muted">El grupo no tiene sesiones en esta versión (puede estar cerrado o haberse creado después de generarla).</p>
               }
             }
+            @if (docentesGrupo(e.id).length) {
+              <div class="label" style="margin:16px 0 6px">Horario de atención del docente</div>
+              @for (d of docentesGrupo(e.id); track d) {
+                <div class="caption atencion-linea"><strong>{{ nombreDocente(d) }}:</strong> {{ store.textoAtencion(store.atencionDe(d, e.cursoId)) }}</div>
+              }
+            }
             <div class="row" style="margin-top:12px;gap:8px">
               <a class="btn btn-sm" routerLink="/tablero" [queryParams]="{ curso: e.cursoId, grupo: e.id }"><app-icon name="board" [size]="14" /> Ver en el tablero</a>
               <a class="btn btn-sm btn-ghost" routerLink="/tablero" [queryParams]="{ curso: e.cursoId }"><app-icon name="eye" [size]="14" /> Comparar con los otros grupos del curso</a>
@@ -136,7 +142,7 @@ import { Modal } from '../../shared/modal';
           </div>
         </div>
         @if (e.jornada === 'DIURNA') {
-          <p class="caption" style="margin-top:10px">Norma del programa: los grupos diurnos de un curso los dictan docentes distintos (B6).</p>
+          <p class="caption" style="margin-top:10px">Norma del programa (blanda, B6): lo ideal es que los grupos diurnos de un curso los dicten docentes distintos; se acepta el mismo docente cuando no hay otro disponible.</p>
         }
         @if (error()) { <div class="errores" style="margin-top:14px">{{ error() }}</div> }
         <div class="modal-foot">
@@ -154,6 +160,7 @@ import { Modal } from '../../shared/modal';
       .chip.mal { background: #fdeeec; border-color: var(--color-coral); color: #8e1a0a; }
       .chip:hover { border-color: var(--color-notion-blue); }
       .chip.pend { border-color: var(--color-coral); border-style: dashed; }
+      .atencion-linea { font-size: 13px; color: var(--ink-80, #333); }
       .ver-horario { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; margin-top: 4px; }
       .ficha .datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px; }
       .ficha .datos > div { display: flex; flex-direction: column; }
@@ -218,6 +225,8 @@ export class Grupos {
     const docs = [...new Set(this.sesionesGrupo(g.id).map((x) => this.docente(x)))];
     return `${c?.codigo} · semestre ${c?.nivel}${docs.length ? ' · ' + docs.join(', ') : ''}`;
   }
+  docentesGrupo = (grupoId: string) => [...new Set(this.sesionesGrupo(grupoId).map((x) => x.docenteId).filter((x): x is string => !!x))];
+  nombreDocente = (id: string) => this.store.catalogo().docente(id)?.nombre ?? '';
   dia = (x: Sesion) => nombreDia(x.dia);
   hora = (x: Sesion) => rango(x.inicio, x.inicio + this.store.parametrosDe(this.versionVista()!).duracionSesion);
   aula = (x: Sesion) => (x.aulaId ? this.store.catalogo().aula(x.aulaId)?.codigo ?? '' : 'Sin aula');

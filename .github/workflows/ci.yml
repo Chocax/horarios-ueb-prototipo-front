@@ -1,0 +1,25 @@
+# Integración continua: en cada push o pull request a main se instalan dependencias,
+# se corren las pruebas del motor de reglas y del generador, y se compila el proyecto.
+# Vercel despliega la rama main por su cuenta cuando el push llega a GitHub.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pruebas-y-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Pruebas del motor de reglas (R1–R9) y del generador
+        run: npm test
+      - name: Compilar
+        run: npm run build

@@ -6,6 +6,7 @@ import { StoreService } from '../../core/services/store.service';
 import { ToastService } from '../../core/services/toast.service';
 import { cortoVinculacion, normalizar, nuevoId } from '../../core/util';
 import { DisponibilidadEditor } from '../../shared/disponibilidad-editor';
+import { HorarioAtencionEditor } from '../../shared/horario-atencion';
 import { Icon } from '../../shared/icon';
 import { Modal } from '../../shared/modal';
 
@@ -13,7 +14,7 @@ export const ESCALAFON = ['Instructor', 'Auxiliar', 'Asistente', 'Asociado', 'Ti
 
 @Component({
   selector: 'app-docentes',
-  imports: [FormsModule, Icon, Modal, DisponibilidadEditor],
+  imports: [FormsModule, Icon, Modal, DisponibilidadEditor, HorarioAtencionEditor],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -66,6 +67,7 @@ export const ESCALAFON = ['Instructor', 'Auxiliar', 'Asistente', 'Asociado', 'Ti
           <button [class.on]="tab() === 'datos'" (click)="tab.set('datos')">Datos</button>
           <button [class.on]="tab() === 'hab'" (click)="tab.set('hab')">Cursos habilitados ({{ e.habilitaciones.length }})</button>
           <button [class.on]="tab() === 'disp'" (click)="tab.set('disp')">Disponibilidad</button>
+          @if (!esNuevo()) { <button [class.on]="tab() === 'atencion'" (click)="tab.set('atencion')">Horario de atención</button> }
         </div>
 
         @switch (tab()) {
@@ -106,6 +108,10 @@ export const ESCALAFON = ['Instructor', 'Auxiliar', 'Asistente', 'Asociado', 'Ti
           @case ('disp') {
             <app-disponibilidad-editor [bloques]="e.disponibilidad" [parametros]="store.parametros()" (cambio)="disp = $event; e.disponibilidad = $event" />
           }
+          @case ('atencion') {
+            <app-horario-atencion [docenteId]="e.id" />
+            <p class="caption" style="margin-top:10px">Cada materia se guarda con su propio botón. Los cambios de esta pestaña no dependen del botón «Guardar» del docente.</p>
+          }
         }
 
         @if (errores().length) {
@@ -142,7 +148,7 @@ export class Docentes {
   protected readonly qCurso = signal('');
   protected readonly edit = signal<Docente | null>(null);
   protected readonly esNuevo = signal(false);
-  protected readonly tab = signal<'datos' | 'hab' | 'disp'>('datos');
+  protected readonly tab = signal<'datos' | 'hab' | 'disp' | 'atencion'>('datos');
   protected readonly errores = signal<string[]>([]);
   protected disp: BloqueDisponible[] | null = null;
   private dispOriginal: BloqueDisponible[] = [];

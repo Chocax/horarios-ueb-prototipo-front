@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/demo.gif" alt="Demo: la coordinadora genera la propuesta, arrastra una sesión a las 12:00 y el sistema la rechaza con la regla R3; luego la mueve a un hueco válido y se guarda" width="92%">
+  <img src="docs/img/demo.gif" alt="Demo: la coordinadora genera la propuesta, arrastra una sesión al bloque no asignable y el sistema la rechaza con la regla R3; luego la mueve a un hueco válido y se guarda" width="92%">
 </p>
 
 > [!NOTE]
@@ -58,6 +58,7 @@ El sistema propuesto genera una propuesta válida, deja ajustarla arrastrando se
 |---|---|---|
 | ⚙️ | Periodos académicos con sus propios parámetros (franjas, bloque no asignable, cupos, horas por vinculación) | *Periodos y parámetros* |
 | 🧑‍🏫 | Docentes con vinculación, escalafón, cursos habilitados y disponibilidad semanal (editor de grilla) | *Docentes* · *Mi disponibilidad* |
+| 🕐 | **Horario de atención por materia** (cambio pedido en la validación): 1 o 2 h semanales fijas o «acordar con el docente»; lo registra el docente o la coordinadora y el generador no programa clases encima | *Mi disponibilidad* · *Docentes → Horario de atención* · *Mi horario* |
 | 🏫 | 86 aulas reales por bloque y piso (A, B, E, F, G, I) con salas de cómputo, laboratorios de redes y de física | *Aulas* |
 | 📥 | Importación CSV **todo o nada**: si una fila falla no se carga nada y se listan las filas con su motivo | *Importar datos* |
 | 👥 | Demanda por curso, sugerencia de número de grupos y docente preferente por grupo | *Grupos y demanda* |
@@ -68,7 +69,7 @@ El sistema propuesto genera una propuesta válida, deja ajustarla arrastrando se
 | 📊 | Restricciones blandas B1–B6 (informativas, no bloquean) | *Tablero → Restricciones blandas* |
 | 🗳️ | Concepto del comité por versión, publicación bloqueada si hay choques o pendientes, restauración de versiones | *Revisión* · *Versiones* |
 | 🔎 | Consulta por docente, aula, curso o semestre y exportación a CSV y PDF | *Consultar horario* · *Mi horario* |
-| 📈 | Reportes de ocupación de aulas, carga docente y grupos bajo el mínimo; registro de inscritos y cierre de grupos | *Reportes* · *Inscritos y cierre* |
+| 📈 | Reportes de ocupación de aulas por franja (mañana, tarde, noche, sábado), carga docente y grupos bajo el mínimo; registro de inscritos y cierre de grupos | *Reportes* · *Inscritos y cierre* |
 | 🔐 | Inicio de sesión, menú y rutas por rol, rechazo en el "servidor" de acciones sin permiso y bitácora de auditoría | *Login* · *Bitácora* · *Trazabilidad* |
 
 ## 👥 Roles y cuentas de demostración
@@ -110,7 +111,11 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
   </tr>
   <tr>
     <td><img src="docs/img/mi-horario.png" alt="Horario del docente"><br><b>Mi horario</b> · el docente solo ve sus sesiones publicadas y las exporta.</td>
-    <td><img src="docs/img/reportes.png" alt="Reportes"><br><b>Reportes</b> · ocupación de aulas, carga docente y grupos bajo el mínimo.</td>
+    <td><img src="docs/img/reportes.png" alt="Reportes"><br><b>Reportes</b> · ocupación de aulas por franja, carga docente y grupos bajo el mínimo.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/curso.png" alt="Vista por curso"><br><b>Vista por curso</b> · un color por grupo, con su horario y docente.</td>
+    <td><img src="docs/img/atencion.png" alt="Horario de atención"><br><b>Horario de atención</b> · cambio pedido en la validación: 1–2 h por materia o «acordar con el docente».</td>
   </tr>
 </table>
 
@@ -122,7 +127,7 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
 |---|---|
 | Franja lunes a viernes | 07:00 – 22:00 |
 | Franja sábado | 07:00 – 13:00 |
-| Bloque no asignable | 12:00 – 13:00 |
+| Bloque no asignable (almuerzo) | 13:00 – 14:00 |
 | Duración de la sesión | 2 horas |
 | Cupo máximo por grupo | 40 + 10 % de tolerancia = **44** (cupo efectivo) |
 | Cupo mínimo para no cerrar | 10 inscritos |
@@ -134,7 +139,7 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
 > [!IMPORTANT]
 > - **En el día**, cada curso abre **mínimo dos grupos (G1 y G2)** y los dictan **dos docentes distintos**.
 > - **En la noche**, cada curso abre **un grupo (G3)**; solo cuando la demanda lo justifica abre un segundo (**G4**, como Matemáticas básicas y Cálculo diferencial). Nunca más de dos.
-> - La **jornada diurna** usa 07–09, 09–11, 14–16 y 16–18 de lunes a viernes; la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana**.
+> - La **jornada diurna** usa 07–09, 09–11, 11–13, 14–16 y 16–18 de lunes a viernes (el almuerzo es de 13 a 14); la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana**.
 > - **Un grupo tiene como máximo una sesión por día** (regla dura R8): nunca dos bloques de la misma materia el mismo día, tampoco el sábado.
 > - La norma de **dos docentes distintos en el día es ideal, no obligatoria**: casi siempre se cumple, pero hay casos en que no hay otro docente. El generador busca primero un docente distinto y, si no lo hay, repite docente y la versión lo reporta como restricción blanda **B6** (no bloquea la publicación).
 
@@ -183,7 +188,7 @@ flowchart TD
     A[Grupos abiertos del periodo] --> B[Ordenar: primero los que tienen docente preferente,<br>luego los de menos opciones docentes × aulas]
     B --> C{¿Cumple R8 y R9?<br>¿Hay docentes y aulas aptas?}
     C -- No --> P[Pendiente con su regla y causa]
-    C -- Sí --> D[Docentes habilitados con disponibilidad en la jornada,<br>sin los que ya dictan otro grupo diurno del curso]
+    C -- Sí --> D[Docentes habilitados con disponibilidad en la jornada,<br>primero los que no dictan otro grupo diurno del curso (B6)<br>y sin cruzar su horario de atención]
     D --> E[Patrones de días a la misma hora:<br>L-X · M-J · X-V · L-X-V · un día + sábado en la noche<br>una sola sesión por día]
     E --> F[Costo de cada patrón: días seguidos, sábado diurno,<br>huecos y cruces del semestre, carga del docente]
     F --> G{¿El más barato pasa R1–R9?}
@@ -193,7 +198,7 @@ flowchart TD
     I -- Nada cabe --> P
 ```
 
-El resultado con los datos de demostración: **~289 sesiones en milisegundos, 0 violaciones duras** y 1 pendiente intencional para probar su resolución (*Programación I G1* por R4). *Investigación tecnológica* queda con la misma docente en G1 y G2 y aparece como aviso **B6**. Así queda, por ejemplo, el 6.º semestre:
+El resultado con los datos de demostración: **~289 sesiones en milisegundos, 0 violaciones duras**, el 85 % de los grupos diurnos en L-X, M-J o L-X-V a la misma hora (el resto, donde el docente solo puede viernes y sábado o no cabe otro patrón) y 1 pendiente intencional para probar su resolución (*Programación I G1* por R4). *Investigación tecnológica* queda con la misma docente en G1 y G2 y aparece como aviso **B6**. Así queda, por ejemplo, el 6.º semestre:
 
 <p align="center">
   <img src="docs/img/tablero-semestre-6.png" alt="Horario del sexto semestre en jornada diurna y nocturna" width="90%">
@@ -237,6 +242,7 @@ flowchart LR
 |---|---|
 | `src/app/core/models.ts` | Entidades del diagrama de clases y del MER |
 | `src/app/core/rules/` | Reglas duras R1–R9, validador y reglas blandas B1–B6 |
+| `tests/` | Pruebas automáticas del motor de reglas y del generador (`npm test`); las corre GitHub Actions en cada push (`.github/workflows/ci.yml`) |
 | `src/app/core/scheduling/` | Generador por patrones semanales (interfaz `GeneradorHorario`, intercambiable) |
 | `src/app/core/services/` | `StoreService` (hace de backend: permisos, reglas, versiones, bitácora), sesión y avisos |
 | `src/app/core/import/` | Importación CSV todo o nada |
@@ -262,6 +268,7 @@ npm start          # abre http://localhost:4200
 |---|---|
 | `npm start` | Servidor de desarrollo con recarga en caliente |
 | `npm run build` | Compilación de producción en `dist/horarios-ueb/browser` |
+| `npm test` | 26 pruebas del motor de reglas (R1–R9) y del generador; GitHub Actions las corre en cada push a `main` |
 
 El archivo `.npmrc` trae `legacy-peer-deps=true` para evitar conflictos de dependencias de npm. Los datos viven en el `localStorage` de tu navegador: el botón **Restablecer datos de demostración** del inicio de sesión los deja como al principio.
 
@@ -280,6 +287,7 @@ Las rutas usan `#` (por ejemplo `https://horarios-ueb.vercel.app/#/tablero`), as
 |---|---|---|
 | RF-01, RF-02, RF-16 | CU-03 | Periodos y parámetros |
 | RF-03, RF-04 | CU-04, CU-05 | Docentes · Mi disponibilidad |
+| RF-23 | CU-21 | Mi disponibilidad · Docentes → Horario de atención · Mi horario |
 | RF-05, RF-06 | CU-06 | Cursos · Aulas |
 | RF-17 | CU-07 | Importar datos |
 | RF-07, RF-18 | CU-08, CU-09 | Grupos y demanda |
@@ -289,7 +297,7 @@ Las rutas usan `#` (por ejemplo `https://horarios-ueb.vercel.app/#/tablero`), as
 | RF-14, RF-21 | CU-16, CU-17 | Reportes · Inscritos y cierre |
 | RF-15, RF-22 | CU-01, CU-02 | Login · Usuarios · Bitácora · Trazabilidad |
 
-La pantalla **Trazabilidad** del prototipo tiene la matriz completa con la prueba de aceptación de cada RF. El guion de pruebas paso a paso (P-01 a P-25) está en [`MANUAL.md`](MANUAL.md) y en PDF en [`docs/`](docs).
+La pantalla **Trazabilidad** del prototipo tiene la matriz completa con la prueba de aceptación de cada RF. El guion de pruebas paso a paso (P-01 a P-29) está en [`MANUAL.md`](MANUAL.md) y en PDF en [`docs/`](docs).
 
 ## 🛠️ Solución de problemas
 

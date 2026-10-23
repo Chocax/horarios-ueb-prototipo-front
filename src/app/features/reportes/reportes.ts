@@ -18,7 +18,7 @@ type Tab = 'aulas' | 'docentes' | 'grupos';
         <div>
           <div class="eyebrow">CU-16 · RF-14</div>
           <h1>Reportes</h1>
-          <p class="serif sub">Utilización de aulas, carga de cada docente frente a su máximo y grupos por debajo del cupo mínimo de {{ store.parametros().cupoMinimo }} estudiantes.</p>
+          <p class="serif sub">Utilización de aulas por franja (mañana, tarde, noche y sábado), carga de cada docente frente a su máximo y grupos por debajo del cupo mínimo de {{ store.parametros().cupoMinimo }} estudiantes.</p>
         </div>
         <button class="btn btn-ghost" (click)="exportar()" [disabled]="!version()"><app-icon name="download" [size]="16" /> Exportar CSV</button>
       </div>
@@ -46,13 +46,29 @@ type Tab = 'aulas' | 'docentes' | 'grupos';
               <div class="accent marigold stat"><div class="valor">{{ aulas()[0]?.codigo }}</div><div class="etiqueta">aula más usada · {{ aulas()[0]?.pct }} %</div></div>
               <div class="accent peach stat"><div class="valor">{{ ociosas() }}</div><div class="etiqueta">aulas por debajo del 25 %</div></div>
             </div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="label" style="margin-bottom:10px">Utilización de las aulas por franja</div>
+              <div class="franjas">
+                @for (f of resumenFranjas(); track f.clave) {
+                  <div class="franja">
+                    <div class="row between"><strong>{{ f.nombre }}</strong><span class="caption">{{ f.rango }}</span></div>
+                    <div class="barra" [class.alta]="f.pct >= 75" style="margin:8px 0 4px"><span [style.width.%]="f.pct"></span></div>
+                    <span class="caption">{{ f.pct }} % · {{ f.horas }} de {{ f.disponibles }} h-aula</span>
+                  </div>
+                }
+              </div>
+            </div>
             <div class="tabla-wrap">
               <table class="tabla">
-                <thead><tr><th>Aula</th><th class="num">Capacidad</th><th>Tipo</th><th class="num">Horas asignadas</th><th style="width:40%">Ocupación semanal</th></tr></thead>
+                <thead><tr><th>Aula</th><th class="num">Capacidad</th><th>Tipo</th>
+                  @for (f of franjas(); track f.clave) { <th class="num" [title]="f.rango">{{ f.nombre }}</th> }
+                  <th class="num">Horas</th><th style="width:26%">Ocupación semanal</th></tr></thead>
                 <tbody>
                   @for (a of aulas(); track a.id) {
                     <tr>
-                      <td class="mono"><strong>{{ a.codigo }}</strong></td><td class="num">{{ a.capacidad }}</td><td>{{ a.tipo }}</td><td class="num">{{ a.horas }}</td>
+                      <td class="mono"><strong>{{ a.codigo }}</strong></td><td class="num">{{ a.capacidad }}</td><td>{{ a.tipo }}</td>
+                      @for (x of a.porFranja; track $index) { <td class="num" [class.muted]="!x">{{ x }} %</td> }
+                      <td class="num">{{ a.horas }}</td>
                       <td><div class="row" style="gap:10px;flex-wrap:nowrap"><div class="barra" [class.alta]="a.pct >= 75" style="flex:1"><span [style.width.%]="a.pct"></span></div><span class="caption" style="width:40px">{{ a.pct }} %</span></div></td>
                     </tr>
                   }
@@ -106,7 +122,14 @@ type Tab = 'aulas' | 'docentes' | 'grupos';
       }
     </div>
   `,
-  styles: [`.rojo { color: var(--color-vermillion); font-weight: 600; }`],
+  styles: [
+    `
+      .rojo { color: var(--color-vermillion); font-weight: 600; }
+      .franjas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      @media (max-width: 900px) { .franjas { grid-template-columns: 1fr 1fr; } }
+      .franja { display: flex; flex-direction: column; }
+    `,
+  ],
 })
 export class Reportes {
   protected readonly store = inject(StoreService);
@@ -123,17 +146,62 @@ export class Reportes {
     const bloq = p.bloquesNoAsignables.reduce((t, b) => t + (b.fin - b.inicio), 0);
     return 5 * (p.franjaLunesViernes.fin - p.franjaLunesViernes.inicio - bloq) + (p.franjaSabado.fin - p.franjaSabado.inicio);
   });
+  /**
+   * Franjas del reporte (RF-14): mañana y tarde separadas por el bloque no asignable, noche desde las 18:00
+   * y sábado. Las horas disponibles de cada franja salen de los parámetros del periodo.
+   */
+  protected readonly franjas = computed(() => {
+    const p = this.store.parametros();
+    const lv = p.franjaLunesViernes;
+    const sab = p.franjaSabado;
+    const bloque = p.bloquesNoAsignables[0] ?? { inicio: 13, fin: 14 };
+    const noche = Math.max(Math.min(18, lv.fin), bloque.fin);
+    const def = [
+      { clave: 'manana', nombre: 'Mañana', ini: lv.inicio, fin: bloque.inicio, sabado: false },
+      { clave: 'tarde', nombre: 'Tarde', ini: bloque.fin, fin: noche, sabado: false },
+      { clave: 'noche', nombre: 'Noche', ini: noche, fin: lv.fin, sabado: false },
+      { clave: 'sabado', nombre: 'Sábado', ini: sab.inicio, fin: sab.fin, sabado: true },
+    ];
+    const hh = (h: number) => String(h).padStart(2, '0') + ':00';
+    return def.map((f) => ({
+      ...f,
+      rango: `${f.sabado ? 'sáb' : 'L–V'} ${hh(f.ini)}–${hh(f.fin)}`,
+      disponibles: Math.max(0, f.fin - f.ini) * (f.sabado ? 1 : 5),
+    }));
+  });
+  /** Índice de la franja de una sesión según su día y hora de inicio. */
+  private franjaDe(dia: number, inicio: number) {
+    if (dia === 5) return 3;
+    const f = this.franjas();
+    if (inicio >= f[2].ini) return 2;
+    if (inicio >= f[1].ini) return 1;
+    return 0;
+  }
   protected readonly aulas = computed(() => {
     const v = this.version();
     if (!v) return [];
     const dur = this.store.parametrosDe(v).duracionSesion;
+    const f = this.franjas();
     return this.store
       .aulas()
       .map((a) => {
-        const horas = v.sesiones.filter((s) => s.aulaId === a.id).length * dur;
-        return { id: a.id, codigo: a.codigo, capacidad: a.capacidad, tipo: a.caracteristicas.length ? a.caracteristicas.map(nombreCaracteristica).join(' + ') : 'Estándar', horas, pct: Math.round((horas / this.horasSemana()) * 100) };
+        const ses = v.sesiones.filter((s) => s.aulaId === a.id);
+        const horas = ses.length * dur;
+        const hFranja = [0, 0, 0, 0];
+        ses.forEach((s) => (hFranja[this.franjaDe(s.dia, s.inicio)] += dur));
+        const porFranja = hFranja.map((h, i) => (f[i].disponibles ? Math.round((h / f[i].disponibles) * 100) : 0));
+        return { id: a.id, codigo: a.codigo, capacidad: a.capacidad, tipo: a.caracteristicas.length ? a.caracteristicas.map(nombreCaracteristica).join(' + ') : 'Estándar', horas, hFranja, porFranja, pct: Math.round((horas / this.horasSemana()) * 100) };
       })
       .sort((a, b) => b.pct - a.pct);
+  });
+  /** Ocupación de todas las aulas juntas en cada franja. */
+  protected readonly resumenFranjas = computed(() => {
+    const n = this.aulas().length || 1;
+    return this.franjas().map((f, i) => {
+      const horas = this.aulas().reduce((t, a) => t + a.hFranja[i], 0);
+      const disponibles = f.disponibles * n;
+      return { ...f, horas, disponibles, pct: disponibles ? Math.round((horas / disponibles) * 100) : 0 };
+    });
   });
   protected readonly promedio = computed(() => (this.aulas().length ? Math.round(this.aulas().reduce((t, a) => t + a.pct, 0) / this.aulas().length) : 0));
   protected readonly ociosas = computed(() => this.aulas().filter((a) => a.pct < 25).length);
@@ -160,7 +228,14 @@ export class Reportes {
 
   exportar() {
     const per = this.store.periodo().codigo;
-    if (this.tab() === 'aulas') descargarArchivo(`reporte_aulas_${per}.csv`, aCsv([['aula', 'capacidad', 'tipo', 'horas_asignadas', 'ocupacion_pct'], ...this.aulas().map((a) => [a.codigo, a.capacidad, a.tipo, a.horas, a.pct])]));
+    if (this.tab() === 'aulas')
+      descargarArchivo(
+        `reporte_aulas_${per}.csv`,
+        aCsv([
+          ['aula', 'capacidad', 'tipo', ...this.franjas().map((f) => `ocupacion_${f.clave}_pct`), 'horas_asignadas', 'ocupacion_semanal_pct'],
+          ...this.aulas().map((a) => [a.codigo, a.capacidad, a.tipo, ...a.porFranja, a.horas, a.pct]),
+        ]),
+      );
     else if (this.tab() === 'docentes') descargarArchivo(`reporte_carga_docente_${per}.csv`, aCsv([['docente', 'vinculacion', 'sesiones', 'horas', 'horas_max', 'carga_pct'], ...this.docentes().map((d) => [d.nombre, d.vinc, d.sesiones, d.horas, d.max, d.pct])]));
     else descargarArchivo(`reporte_grupos_bajo_minimo_${per}.csv`, aCsv([['grupo', 'jornada', 'cupo', 'inscritos', 'minimo'], ...this.bajoMinimo().map((g) => [this.store.etiquetaGrupo(g.id), g.jornada, g.cupoPlaneado, g.inscritos, this.store.parametros().cupoMinimo])]));
   }
