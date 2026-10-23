@@ -122,6 +122,7 @@ export const ESCALAFON = ['Instructor', 'Auxiliar', 'Asistente', 'Asociado', 'Ti
     `
       .rojo { color: var(--color-vermillion); font-weight: 600; }
       .niveles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-height: 52vh; overflow: auto; }
+      @media (max-width: 760px) { .niveles { grid-template-columns: 1fr; } }
       .nivel { font-size: 12px; font-weight: 600; color: var(--ink-54); margin: 4px 0 6px; display: flex; align-items: center; gap: 6px; }
       .dot { width: 10px; height: 10px; border-radius: 3px; }
       .check { font-size: 13px; padding: 3px 0; }

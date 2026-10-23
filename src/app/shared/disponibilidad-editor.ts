@@ -49,6 +49,8 @@ import { bloqueado, fueraDeFranja, horasGrilla } from './semana';
       .leyenda .no { background: #fff; }
       .leyenda .off { background: repeating-linear-gradient(135deg, rgba(0,0,0,.08) 0 3px, transparent 3px 6px); }
       .disp { display: grid; grid-template-columns: 52px repeat(6, 1fr); gap: 3px; user-select: none; }
+      :host { display: block; overflow-x: auto; }
+      .disp { min-width: 420px; }
       .cab { font-size: 11.5px; font-weight: 600; color: var(--ink-54); text-align: center; padding-bottom: 2px; }
       .hora { font-size: 11px; color: var(--ink-40); text-align: right; padding-right: 6px; line-height: 22px; font-variant-numeric: tabular-nums; }
       .c { height: 22px; border-radius: 5px; border: 1px solid var(--hairline); background: #fff; cursor: pointer; padding: 0; transition: background 120ms ease; }

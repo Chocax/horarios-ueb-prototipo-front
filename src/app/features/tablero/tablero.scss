@@ -201,3 +201,47 @@ fieldset {
   gap: 6px;
   align-items: baseline;
 }
+
+/* ---------- celular y tableta ---------- */
+@media (max-width: 900px) {
+  .area,
+  .area.con-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grilla-wrap {
+    order: -1;
+  }
+  .bandeja {
+    position: static;
+    max-height: none;
+  }
+  /* el detalle de la sesión y las blandas se abren como hoja inferior */
+  .panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-height: 78vh;
+    z-index: 70;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.2);
+  }
+  .panel fieldset,
+  .panel select {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .resumen {
+    gap: 14px 20px;
+  }
+  .k {
+    font-size: 22px;
+  }
+  .filtros {
+    width: 100%;
+  }
+  .filtros select {
+    flex: 1 1 160px;
+  }
+}

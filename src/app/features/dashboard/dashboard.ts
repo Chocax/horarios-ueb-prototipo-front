@@ -105,6 +105,7 @@ import { Icon } from '../../shared/icon';
       .txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
       .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
       .kpis div { display: flex; flex-direction: column; }
+      @media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, 1fr); row-gap: 12px; } .pasos li { gap: 10px; } .pasos .btn { padding: 3px 8px; } }
       .k { font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
       .k.rojo { color: var(--color-vermillion); }
       .obs, .mov { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--hairline); }

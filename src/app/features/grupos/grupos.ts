@@ -106,6 +106,7 @@ import { Modal } from '../../shared/modal';
       .chip.n { background: #e8eefc; }
       .chip.mal { background: #fdeeec; border-color: var(--color-coral); color: #8e1a0a; }
       .chip:hover { border-color: var(--color-notion-blue); }
+      @media (max-width: 900px) { .tabla-wrap > table.tabla { min-width: 1040px; } .chip { white-space: nowrap; } }
     `,
   ],
 })

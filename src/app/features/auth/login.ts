@@ -77,14 +77,20 @@ import { RUTA_INICIAL } from '../../layout/nav';
   `,
   styles: [
     `
-      .wrap { min-height: 100vh; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; max-width: 1280px; margin: 0 auto; padding: 48px 40px; }
-      @media (max-width: 1000px) { .wrap { grid-template-columns: 1fr; } }
+      .wrap { min-height: 100vh; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: start; max-width: 1280px; margin: 0 auto; padding: 56px 40px 48px; }
+      .hero { position: sticky; top: 56px; padding-top: 8px; }
+      @media (max-width: 1000px) {
+        .wrap { grid-template-columns: 1fr; gap: 28px; padding: 28px 20px 40px; }
+        .hero { position: static; }
+      }
       .marca-ueb { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
       .marca-ueb img { width: 104px; height: auto; }
       .marca-ueb .sep { width: 1px; align-self: stretch; background: var(--hairline); }
       .marca-ueb strong { display: block; font-size: 16px; }
       .marca-ueb span { font-size: 13px; color: var(--ink-60); }
-      .hero h1 { font-size: 54px; line-height: 1.06; letter-spacing: -1.89px; font-weight: 600; max-width: 640px; }
+      .hero h1 { font-size: 54px; line-height: 1.12; letter-spacing: -1.89px; font-weight: 600; max-width: 640px; }
+      /* el resaltado va detrás del texto para no tapar los trazos de la línea de arriba (la «g» de «Programa») */
+      .hero h1 .highlight { position: relative; z-index: -1; }
       .hero .serif { margin-top: 18px; max-width: 560px; }
       .tarjetas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; max-width: 640px; }
       .tarjetas .accent { padding: 16px; display: flex; flex-direction: column; gap: 4px; }
@@ -101,6 +107,18 @@ import { RUTA_INICIAL } from '../../layout/nav';
       .roles .r { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: start; padding: 10px 0 2px; }
       .roles .r .rol { justify-self: start; }
       .roles p { font-size: 13px; line-height: 1.45; color: var(--ink-60); margin: 0; }
+      @media (max-width: 640px) {
+        .marca-ueb { gap: 12px; margin-bottom: 18px; }
+        .marca-ueb img { width: 72px; }
+        .hero h1 { font-size: 34px; letter-spacing: -1px; }
+        .hero .serif { font-size: 16px; margin-top: 12px; }
+        .tarjetas { grid-template-columns: 1fr; gap: 8px; margin-top: 20px; }
+        .tarjetas .accent { flex-direction: row; align-items: baseline; gap: 10px; padding: 12px 14px; }
+        .tarjetas strong { font-size: 17px; flex: none; }
+        .form { padding: 20px; }
+        .cuentas { grid-template-columns: 1fr; }
+        .roles .r { grid-template-columns: 1fr; gap: 6px; }
+      }
       .cuenta:hover { border-color: var(--color-notion-blue); background: var(--color-sky-tint); }
       .cuenta strong { font-size: 13px; }
       code { background: rgba(0,0,0,0.06); border-radius: 4px; padding: 1px 5px; }

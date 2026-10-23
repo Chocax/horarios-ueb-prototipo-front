@@ -18,6 +18,10 @@
 </p>
 
 <p align="center">
+  <a href="https://horarios-ueb.vercel.app"><b>🚀 Ver la demo en vivo → horarios-ueb.vercel.app</b></a> · contraseña <code>demo123</code>
+</p>
+
+<p align="center">
   <img src="docs/img/demo.gif" alt="Demo: la coordinadora genera la propuesta, arrastra una sesión a las 12:00 y el sistema la rechaza con la regla R3; luego la mueve a un hueco válido y se guarda" width="92%">
 </p>
 
@@ -265,7 +269,7 @@ El archivo `.npmrc` trae `legacy-peer-deps=true` para evitar conflictos de depen
 3. Vercel detecta Angular solo. Si pide datos: *Build command* `npm run build` · *Output directory* `dist/horarios-ueb/browser`.
 4. **Deploy.** Cada `git push` a `main` vuelve a desplegar.
 
-Las rutas usan `#` (por ejemplo `https://tu-app.vercel.app/#/tablero`), así que no hace falta configurar reescrituras. Si alguien abre el link de una pantalla sin haber iniciado sesión, primero ve el login y después llega a esa pantalla.
+Las rutas usan `#` (por ejemplo `https://horarios-ueb.vercel.app/#/tablero`), así que no hace falta configurar reescrituras. Si alguien abre el link de una pantalla sin haber iniciado sesión, primero ve el login y después llega a esa pantalla.
 
 ## 🔗 Trazabilidad con los requerimientos
 
@@ -300,6 +304,7 @@ La pantalla **Trazabilidad** del prototipo tiene la matriz completa con la prueb
 - Entregable de análisis y diseño: BPMN, casos de uso CU-01 a CU-20, MER, diagrama de clases y arquitectura
 - Cronograma, recursos y costos (EDT, PERT, Gantt)
 - [Manual de usuario y pruebas](MANUAL.md)
+- [Pendientes, supuestos y cambios en vivo](PENDIENTES.md)
 
 ---
 

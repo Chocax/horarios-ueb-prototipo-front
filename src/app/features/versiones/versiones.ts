@@ -98,6 +98,7 @@ import { Modal } from '../../shared/modal';
       .kpis { display: flex; gap: 18px; }
       .kpis div { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
       .kpis strong { font-size: 18px; }
+      @media (max-width: 640px) { .cab { gap: 12px; } .kpis { width: 100%; justify-content: space-between; gap: 6px; } .kpis div { min-width: 0; } }
       .rojo { color: var(--color-vermillion); }
       .obs { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline); display: grid; gap: 10px; }
       .o { display: flex; flex-direction: column; gap: 4px; }

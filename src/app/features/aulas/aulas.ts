@@ -100,6 +100,7 @@ import { Modal } from '../../shared/modal';
     `
       .bloques { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
       @media (max-width: 1100px) { .bloques { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 640px) { .bloques { grid-template-columns: 1fr; } }
       .bloque { text-align: left; font: inherit; background: #fff; border: 1px solid var(--hairline); border-radius: var(--radius-cards); padding: 14px 16px; cursor: pointer;
         display: flex; flex-direction: column; gap: 6px; transition: border-color 200ms ease, background 200ms ease; }
       .bloque:hover { border-color: var(--color-notion-blue); }

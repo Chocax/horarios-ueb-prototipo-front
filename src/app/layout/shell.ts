@@ -11,7 +11,8 @@ import { NAV } from './nav';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="side">
+    @if (menu()) { <div class="velo" (click)="menu.set(false)"></div> }
+    <aside class="side" [class.abierto]="menu()">
       <div class="marca">
         <img class="logo" src="ueb-simbolo.png" alt="Universidad El Bosque" width="34" height="34" />
         <div>
@@ -25,7 +26,7 @@ import { NAV } from './nav';
             <div class="grupo">{{ g.nombre }}</div>
           }
           @for (i of g.items; track i.ruta) {
-            <a [routerLink]="i.ruta" routerLinkActive="on" class="item">
+            <a [routerLink]="i.ruta" routerLinkActive="on" class="item" (click)="menu.set(false)">
               <app-icon [name]="i.icono" [size]="17" />
               <span>{{ i.texto }}</span>
             </a>
@@ -40,7 +41,8 @@ import { NAV } from './nav';
 
     <div class="main">
       <header class="top">
-        <div class="row" style="gap:8px">
+        <button class="btn icon-btn hamburguesa" (click)="menu.set(!menu())" aria-label="Abrir menú"><app-icon name="list" /></button>
+        <div class="row periodo" style="gap:8px">
           <span class="caption">Periodo</span>
           <select (change)="cambiarPeriodo($any($event.target).value)" aria-label="Periodo académico">
             @for (p of store.periodos(); track p.id) {
@@ -96,6 +98,26 @@ import { NAV } from './nav';
       .avatar { width: 34px; height: 34px; border-radius: 99px; border: 2px solid var(--color-signal-blue); background: #fff; display: inline-flex;
         align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
       main { flex: 1; min-width: 0; }
+      .hamburguesa, .velo { display: none; }
+      /* ---------- celular y tableta ---------- */
+      @media (max-width: 900px) {
+        :host { display: block; }
+        .hamburguesa { display: inline-flex; flex: none; }
+        .side { position: fixed; left: 0; top: 0; bottom: 0; width: 272px; z-index: 60; transform: translateX(-100%);
+          transition: transform 220ms ease; box-shadow: var(--shadow-mockup); }
+        .side.abierto { transform: none; }
+        .velo { display: block; position: fixed; inset: 0; background: rgba(15,15,15,.32); z-index: 55; }
+        .top { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+        .top .spacer { display: none; }
+        .periodo { flex: 1; min-width: 0; flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
+        .periodo select { flex: none; max-width: 150px; }
+        .periodo .pill { white-space: nowrap; flex: none; }
+        .periodo .caption { display: none; }
+        .usuario .txt { display: none; }
+      }
+      @media (max-width: 520px) {
+        .periodo .pill { font-size: 11px; padding: 2px 8px; }
+      }
     `,
   ],
 })

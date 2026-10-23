@@ -683,3 +683,103 @@ table.tabla {
     padding: 0;
   }
 }
+
+/* ---------- celular y tableta ----------
+   La app está pensada para escritorio; en pantallas pequeñas se reacomoda para que sea legible y usable. */
+@media (max-width: 900px) {
+  .page {
+    padding: 20px 14px 48px;
+    gap: 18px;
+  }
+  .page-head h1 {
+    font-size: 27px;
+    letter-spacing: -0.6px;
+  }
+  .page-head .sub {
+    font-size: 16px;
+  }
+  .page-head > .row,
+  .page-head > .btn,
+  .page-head > a.btn {
+    width: 100%;
+  }
+  .page-head > .row .btn {
+    flex: 1 1 auto;
+  }
+  /* las grillas con columnas fijas en línea pasan a una sola columna */
+  .grid[style] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .card {
+    padding: 16px;
+  }
+  .stat .valor {
+    font-size: 30px;
+  }
+  .row > input[type='search'],
+  .row > select {
+    flex: 1 1 200px;
+    max-width: none !important;
+  }
+  .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .tabs button {
+    white-space: nowrap;
+  }
+  .tabla {
+    font-size: 13px;
+  }
+  .tabla-wrap > table.tabla {
+    min-width: 680px;
+  }
+  fieldset {
+    min-width: 0;
+  }
+  select {
+    max-width: 100%;
+  }
+  .tabla th,
+  .tabla td {
+    padding: 8px 10px;
+  }
+  .modal-backdrop {
+    padding: 12px 8px;
+  }
+  .modal {
+    padding: 18px 16px;
+  }
+  .modal-foot {
+    flex-wrap: wrap;
+  }
+  .modal-foot .btn {
+    flex: 1 1 auto;
+  }
+  .aviso {
+    font-size: 13px;
+  }
+}
+@media (max-width: 640px) {
+  .grid.cols-2,
+  .grid.cols-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid.cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat {
+    padding: 14px !important;
+  }
+  .stat .valor {
+    font-size: 26px;
+  }
+  .stat .etiqueta {
+    font-size: 12.5px;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
