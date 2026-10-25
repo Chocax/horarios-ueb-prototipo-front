@@ -13,8 +13,7 @@
 
 <p align="center">
   <b>Prototipo funcional de alta fidelidad del sistema de programación de horarios de clases</b><br>
-  Programa de Ingeniería de Sistemas · Facultad de Ingeniería · Universidad El Bosque<br>
-  Hernando Javier García Mogollón · Jhonatan Lara Gómez · Juanita Mejía Pineda · Laura Gabriela Díaz Amaya · Santiago Pinzón Vásquez
+
 </p>
 
 <p align="center">
@@ -42,7 +41,10 @@
 - [Arquitectura del prototipo](#-arquitectura-del-prototipo)
 - [Guía de instalación y ejecución](#-guía-de-instalación-y-ejecución)
 - [Despliegue en Vercel](#-despliegue-en-vercel)
+- [Requerimientos funcionales y no funcionales](#-requerimientos-funcionales-y-no-funcionales)
+- [Casos de uso](#-casos-de-uso)
 - [Trazabilidad con los requerimientos](#-trazabilidad-con-los-requerimientos)
+- [Contexto del proyecto y estado](#-contexto-del-proyecto-y-estado)
 - [Solución de problemas](#-solución-de-problemas)
 - [Documentos del proyecto](#-documentos-del-proyecto)
 
@@ -137,7 +139,7 @@ El menú del coordinador sigue el orden del proceso del BPMN: **Planeación → 
 ### Norma de grupos y jornadas del Programa
 
 > [!IMPORTANT]
-> - **En el día**, cada curso abre **mínimo dos grupos (G1 y G2)** y los dictan **dos docentes distintos**.
+> - **En el día**, cada curso abre **mínimo dos grupos (G1 y G2)**, idealmente con **dos docentes distintos** (ver B6).
 > - **En la noche**, cada curso abre **un grupo (G3)**; solo cuando la demanda lo justifica abre un segundo (**G4**, como Matemáticas básicas y Cálculo diferencial). Nunca más de dos.
 > - La **jornada diurna** usa 07–09, 09–11, 11–13, 14–16 y 16–18 de lunes a viernes (el almuerzo es de 13 a 14); la **nocturna** usa 18–20 y 20–22 de lunes a viernes y el **sábado en la mañana**.
 > - **Un grupo tiene como máximo una sesión por día** (regla dura R8): nunca dos bloques de la misma materia el mismo día, tampoco el sábado.
@@ -198,7 +200,7 @@ flowchart TD
     I -- Nada cabe --> P
 ```
 
-El resultado con los datos de demostración: **~289 sesiones en milisegundos, 0 violaciones duras**, el 85 % de los grupos diurnos en L-X, M-J o L-X-V a la misma hora (el resto, donde el docente solo puede viernes y sábado o no cabe otro patrón) y 1 pendiente intencional para probar su resolución (*Programación I G1* por R4). *Investigación tecnológica* queda con la misma docente en G1 y G2 y aparece como aviso **B6**. Así queda, por ejemplo, el 6.º semestre:
+El resultado con los datos de demostración: **~289 sesiones en milisegundos, 0 violaciones duras**, el 96 % de los grupos diurnos (78 de 81) en L-X, M-J o L-X-V a la misma hora, usando también la franja de 11 a 13 (el resto, donde el docente solo puede viernes y sábado o no cabe otro patrón) y 1 pendiente intencional para probar su resolución (*Programación I G1* por R4). *Investigación tecnológica* queda con la misma docente en G1 y G2 y aparece como aviso **B6**. Así queda, por ejemplo, el 6.º semestre:
 
 <p align="center">
   <img src="docs/img/tablero-semestre-6.png" alt="Horario del sexto semestre en jornada diurna y nocturna" width="90%">
@@ -268,7 +270,7 @@ npm start          # abre http://localhost:4200
 |---|---|
 | `npm start` | Servidor de desarrollo con recarga en caliente |
 | `npm run build` | Compilación de producción en `dist/horarios-ueb/browser` |
-| `npm test` | 26 pruebas del motor de reglas (R1–R9) y del generador; GitHub Actions las corre en cada push a `main` |
+| `npm test` | 27 pruebas del motor de reglas (R1–R9) y del generador; GitHub Actions las corre en cada push a `main` |
 
 El archivo `.npmrc` trae `legacy-peer-deps=true` para evitar conflictos de dependencias de npm. Los datos viven en el `localStorage` de tu navegador: el botón **Restablecer datos de demostración** del inicio de sesión los deja como al principio.
 
@@ -280,6 +282,77 @@ El archivo `.npmrc` trae `legacy-peer-deps=true` para evitar conflictos de depen
 4. **Deploy.** Cada `git push` a `main` vuelve a desplegar.
 
 Las rutas usan `#` (por ejemplo `https://horarios-ueb.vercel.app/#/tablero`), así que no hace falta configurar reescrituras. Si alguien abre el link de una pantalla sin haber iniciado sesión, primero ve el login y después llega a esa pantalla.
+
+## 📋 Requerimientos funcionales y no funcionales
+
+Tomados del entregable de levantamiento de requerimientos, con los ajustes que se hicieron después en el prototipo (marcados en negrita). La **prueba de aceptación** es la misma que muestra la pantalla *Trazabilidad*.
+
+| RF | Requerimiento | CU | Prueba de aceptación en el prototipo | Prioridad |
+|---|---|---|---|---|
+| **RF-01** | Configurar, sin modificar el código, los parámetros de programación: franja hábil por día (L–V 07:00–22:00; sábado 07:00–13:00), bloques no asignables (por defecto el almuerzo, **13:00–14:00**) y duración del bloque de clase (por defecto 2 horas). | CU-03 | Cambiar la franja del sábado a 8–12 y regenerar: ninguna sesión queda fuera. | Alta |
+| **RF-02** | Configurar los parámetros de aforo y frecuencia: cupo máximo por grupo (40), tolerancia (10 %), cupo mínimo de cierre (10) y número mínimo (1) y máximo (4) de sesiones semanales por curso. | CU-03 | Cupo máximo 35 → R9 y reportes usan el nuevo valor. | Alta |
+| **RF-03** | Registrar docentes con su tipo de vinculación (tiempo completo, ¾, ½, ¼), categoría de escalafón y horas máximas de docencia directa, tomadas por defecto de la vinculación. | CU-04 | Docente sin vinculación u horas negativas se rechaza. | Alta |
+| **RF-04** | Registrar, por docente, su disponibilidad horaria y los cursos que está habilitado para orientar. La disponibilidad la puede registrar el coordinador o el propio docente. | CU-05 | Docente no habilitado no aparece; disponibilidad nocturna impide 16:00 (R6). | Alta |
+| **RF-05** | Registrar cursos del plan de estudios con su nivel (semestre), número de sesiones semanales y las características de aula que requieren. | CU-06 | Curso con cómputo solo va a laboratorios (R4). | Alta |
+| **RF-06** | Registrar aulas con su capacidad y características (equipos de cómputo, mobiliario móvil). | CU-06 | Aula de 30 rechaza grupo de 40 (R4). | Alta |
+| **RF-07** | Crear grupos (secciones) de un curso para un periodo académico, con su cupo planeado. | CU-08 | Cupo 44 se acepta, 45 se rechaza (R9). | Alta |
+| **RF-08** | Generar una propuesta inicial de horario que asigne a cada grupo un docente, un aula y sus bloques. Los grupos sin asignación válida quedan pendientes, con la causa, sin detener la generación. | CU-10 | Generar: 1 pendiente con su causa (R4), 0 violaciones; la norma de dos docentes aparece como B6. | Alta |
+| **RF-09** | Validar toda asignación contra las restricciones duras R1 a R9. | CU-11 | Cada rechazo nombra la regla violada. | Alta |
+| **RF-10** | Ajustar la propuesta arrastrando y soltando sobre un tablero semanal, rechazando en el acto todo movimiento que viole una restricción dura e indicando la regla violada. | CU-12 | Arrastrar a 13:00 (almuerzo) o a un choque de docente: vuelve y muestra R3/R1. | Alta |
+| **RF-11** | Reportar el cumplimiento de las restricciones blandas **B1 a B6** (B6 se agregó en el prototipo), sin bloquear la publicación. | CU-13 | Panel de blandas; no bloquea la publicación. | Media |
+| **RF-12** | Versionar el horario, publicar una versión como oficial e impedir publicar una versión con violaciones duras o grupos pendientes. Restaurar una versión anterior como nuevo borrador. | CU-14, CU-15 | Publicar con pendientes se bloquea; restaurar crea borrador. | Alta |
+| **RF-13** | Exportar el horario publicado en CSV y PDF. | CU-19 | CSV con una fila por sesión; PDF por impresión. | Media |
+| **RF-14** | Generar reportes de utilización de aulas, carga por docente y grupos por debajo del cupo mínimo. | CU-16 | % de ocupación, horas vs. máximo y grupos < 10. | Media |
+| **RF-15** | Autenticar usuarios, restringir las operaciones según el rol y registrar en bitácora toda creación, modificación y publicación con usuario y fecha-hora. | CU-01 | Comité no ve el tablero y el servidor rechaza la acción directa. | Alta |
+| **RF-16** | Crear periodos académicos (p. ej. 2026-2), cada uno con sus propios parámetros, sin que cambiar uno altere los horarios de otros. | CU-03 | Cambiar parámetros de 2027-1 no altera 2026-2. | Alta |
+| **RF-17** | Importar docentes, disponibilidades, cursos y aulas desde CSV con plantilla. Si hay errores no se carga nada y se informan todos con su fila y motivo. | CU-07 | 50 filas con 3 inválidas: no carga nada y lista las 3. | Alta |
+| **RF-18** | Registrar la demanda estimada por curso y sugerir el número de grupos (demanda ÷ cupo máximo, hacia arriba); el coordinador puede ajustar la sugerencia dentro del cupo efectivo. | CU-09 | Demanda 130 → 4 grupos; se puede bajar a 3 pero no a 2. | Media |
+| **RF-19** | Consultar el horario por docente, aula, curso y nivel. Un docente solo ve su propio horario publicado. | CU-18 | El docente solo ve sus sesiones publicadas. | Media |
+| **RF-20** | El Comité Táctico y los Comités de Área registran concepto u observaciones sobre una versión, visibles para el coordinador. | CU-20 | El coordinador ve la observación en la versión. | Media |
+| **RF-21** | Registrar inscritos por grupo, señalar los que están bajo el cupo mínimo y permitir cerrarlos, liberando docente y aula. La reubicación de estudiantes se decide fuera del sistema. | CU-17 | Grupo con 8 inscritos se cierra y libera docente y aula. | Media |
+| **RF-22** | El administrador crea, desactiva y modifica usuarios y les asigna un rol (coordinador, comité, docente, administrador). | CU-02 | Usuario desactivado no inicia sesión; cambio de rol en bitácora. | Alta |
+| **RF-23** | 🆕 **Horario de atención** (pedido en la validación con el profesor Germán Augusto Neuta): cada docente, o el coordinador en su nombre, registra por materia un espacio semanal de 1 o 2 horas (día, hora, lugar) o indica que se acuerda con el docente. No puede cruzarse con sus clases, el almuerzo ni salir de su disponibilidad, y el generador no programa clases encima. | CU-21 | Germán Neuta: Legislación viernes 12–13 y la electiva «acordar con el docente»; 3 h o cruce con su clase se rechazan. | Alta |
+
+**No funcionales (ISO/IEC 25010)**
+
+| RNF | Categoría | Requerimiento | Estado en el prototipo |
+|---|---|---|---|
+| **RNF-01** | Eficiencia | Generar la propuesta (60 grupos, 30 docentes, 20 aulas) en máx. 60 s y validar un movimiento en menos de 1 s. | ✅ ~70 ms con 161 grupos |
+| **RNF-02** | Usabilidad | Un coordinador nuevo arma un horario tras 30 min de inducción; los rechazos se explican en lenguaje del dominio y en español. | ✅ Validado con un tercero |
+| **RNF-03** | Mantenibilidad (modularidad) | Las reglas duras viven en un componente aislado: agregar una no toca la interfaz ni la persistencia. | ✅ `core/rules/` |
+| **RNF-04** | Mantenibilidad (modificabilidad) | El generador se consume por una interfaz y se puede sustituir sin cambiar quien lo invoca. | ✅ Interfaz `GeneradorHorario` |
+| **RNF-05** | Fiabilidad | Ninguna versión publicada tiene violaciones duras; se conservan las anteriores para revertir. | ✅ |
+| **RNF-06** | Seguridad | Autenticación, contraseñas con hash y sal, HTTPS, permisos aplicados en el servidor y bitácora no modificable. | 🟡 Simulado en el navegador |
+| **RNF-07** | Compatibilidad y portabilidad | Chromium y Firefox desde 1366×768; despliegue reproducible desde configuración. | ✅ Vercel + `npm install` |
+| **RNF-08** | Cumplimiento normativo | Datos personales según la Ley 1581 de 2012: solo nombre, identificador, correo institucional, vinculación y disponibilidad. | ✅ Datos ficticios |
+| **RNF-09** | Seguridad (integridad) | La base de datos impide con restricciones declarativas dos sesiones del mismo docente o aula en el mismo bloque; mover es atómico. | ⏳ Sprint 5 (BD física) |
+| **RNF-10** | Fiabilidad (recuperabilidad) | Procedimiento de respaldo y restauración en máx. 30 min. | ⏳ Sprint 5–6 |
+
+## 🎭 Casos de uso
+
+| CU | Nombre | Actor | Pantalla |
+|---|---|---|---|
+| CU-01 | Iniciar sesión | Todos | `#/login` |
+| CU-02 | Gestionar usuarios y roles | Administrador | `#/usuarios` |
+| CU-03 | Configurar periodo académico | Coordinador | `#/periodos` |
+| CU-04 | Gestionar docentes | Coordinador | `#/docentes` |
+| CU-05 | Registrar disponibilidad | Coordinador, Docente | `#/mi-disponibilidad` |
+| CU-06 | Gestionar cursos y aulas | Coordinador | `#/cursos` |
+| CU-07 | Importar datos del periodo | Coordinador | `#/importar` |
+| CU-08 | Gestionar grupos | Coordinador | `#/grupos` |
+| CU-09 | Sugerir número de grupos | Coordinador | `#/grupos` |
+| CU-10 | Generar propuesta de horario | Coordinador | `#/tablero` |
+| CU-11 | Validar restricciones duras | (incluido) | `#/tablero` |
+| CU-12 | Ajustar horario | Coordinador | `#/tablero` |
+| CU-13 | Revisar restricciones blandas | Coordinador | `#/tablero` |
+| CU-14 | Publicar horario | Coordinador | `#/versiones` |
+| CU-15 | Restaurar versión del horario | Coordinador | `#/versiones` |
+| CU-16 | Consultar reportes | Coordinador | `#/reportes` |
+| CU-17 | Cerrar grupos | Coordinador | `#/inscritos` |
+| CU-18 | Consultar horario | Coordinador, Docente, Comité | `#/consulta` |
+| CU-19 | Exportar horario | Coordinador | `#/consulta` |
+| CU-20 | Registrar observaciones | Comité | `#/revision` |
+| CU-21 | Registrar horario de atención | Docente, Coordinador | `#/mi-disponibilidad` |
 
 ## 🔗 Trazabilidad con los requerimientos
 
@@ -299,6 +372,48 @@ Las rutas usan `#` (por ejemplo `https://horarios-ueb.vercel.app/#/tablero`), as
 
 La pantalla **Trazabilidad** del prototipo tiene la matriz completa con la prueba de aceptación de cada RF. El guion de pruebas paso a paso (P-01 a P-29) está en [`MANUAL.md`](MANUAL.md) y en PDF en [`docs/`](docs).
 
+## 🧭 Contexto del proyecto y estado
+
+Resumen para retomar el proyecto en las siguientes entregas.
+
+**Caso:** *El Reto de la Programación de Horarios de Clases* (Programa de Ingeniería de Sistemas, UEB). Proyecto Núcleo II, Grupo 7, periodo 2026-2.
+
+**Equipo:** Hernando Javier García Mogollón · Jhonatan Lara Gómez · Juanita Mejía Pineda · Laura Gabriela Díaz Amaya · Santiago Pinzón Vásquez.
+
+### Entregas hechas
+
+| Entrega | Contenido | Estado |
+|---|---|---|
+| Levantamiento de requerimientos | RF-01 a RF-22, RNF-01 a RNF-10, reglas R1–R9 y B1–B5, matriz caso → requerimientos | ✅ |
+| Análisis y diseño | BPMN, casos de uso CU-01 a CU-20, MER, diagrama de clases, arquitectura (Angular + Spring Boot + MySQL) | ✅ |
+| Cronograma, recursos y costos | EDT, PERT, Gantt (Excel base del Jira) | ✅ |
+| Prototipo de alta fidelidad + validación | Esta app, Jira con épicas e historias enlazadas al prototipo, validación con el profesor **Germán Augusto Neuta** (Legislación) en [video](https://youtu.be/jlXAin0M4f0), documento en Word ([`docs/Grupo7_Prototipo_y_Validacion.docx`](docs/Grupo7_Prototipo_y_Validacion.docx)) y presentación ([`docs/Grupo7_Presentacion_Horarios.pdf`](docs/Grupo7_Presentacion_Horarios.pdf)) | ✅ |
+
+### Jira (proyecto HDC · Horarios de Clases)
+
+- **Épicas de la EDT** (EDT 1 a 6: gestión, requisitos, diseño, construcción, pruebas, cierre) con los hitos H1 a H5 como tareas.
+- **Épicas funcionales** EF-01 Acceso y administración · EF-02 Configuración del periodo · EF-03 Catálogo académico · EF-04 Oferta y grupos · **EF-05 Generación y ajuste** · **EF-06 Revisión y publicación** (las dos con ciclo funcional completo) · EF-07 Consulta y exportación · EF-08 Seguimiento.
+- Cada historia funcional tiene criterios de aceptación como lista de verificación, RF/CU, responsable, enlace a la pantalla del prototipo y captura de evidencia (en [`docs/evidencias/`](docs/evidencias)).
+- **Sprints:** S1 Requisitos (H1), S2 Diseño (H2), S3 Construcción base y S4 Motor y prototipo **finalizados** · **S5 Verificación en curso** · S6 Cierre (H5) pendiente.
+- La historia **HDC-86** (RF-23, horario de atención) se creó en S5 a partir de la validación.
+
+### Decisiones tomadas en el prototipo (cambios respecto a los entregables)
+
+| Decisión | Antes | Ahora |
+|---|---|---|
+| Almuerzo | 12:00–13:00 | **13:00–14:00**, con clases de 11 a 13 |
+| Una sesión por grupo y día | No estaba | Regla dura dentro de **R8** |
+| Dos docentes distintos en el día | Norma | Restricción blanda **B6** (se acepta si no hay otro docente) |
+| Restricciones blandas | B1–B5 | **B1–B6** |
+| Horario de atención | No estaba | **RF-23 / CU-21** (pedido en la validación) |
+| Backend | Spring Boot + MySQL | Simulado en el navegador (`StoreService` + `localStorage`) para el prototipo |
+
+### Lo que falta (sprints S5 y S6)
+
+- **S5 Verificación:** base de datos física y datos semilla (HDC-9, con RNF-09), plan de pruebas, pruebas de integración y de interfaz, prueba con un juego de datos real del Programa, corrección de defectos y matriz de riesgos.
+- **S6 Cierre:** despliegue en ambiente de demostración, documento final en formato IEEE y manual de usuario, capacitación, ensayo y sustentación final (H5).
+- Supuestos por confirmar con el cliente y cambios fáciles de hacer: ver [`PENDIENTES.md`](PENDIENTES.md).
+
 ## 🛠️ Solución de problemas
 
 | Situación | Qué hacer |
@@ -311,8 +426,10 @@ La pantalla **Trazabilidad** del prototipo tiene la matriz completa con la prueb
 
 ## 📚 Documentos del proyecto
 
-- Levantamiento de requerimientos (RF-01 a RF-22 y RNF con ISO/IEC 25010)
-- Entregable de análisis y diseño: BPMN, casos de uso CU-01 a CU-20, MER, diagrama de clases y arquitectura
+- Levantamiento de requerimientos (RF-01 a RF-22 y RNF con ISO/IEC 25010); RF-23 se agregó después de la validación
+- Entregable de análisis y diseño: BPMN, casos de uso CU-01 a CU-20, MER, diagrama de clases y arquitectura (CU-21 se agregó después)
+- [Prototipo de alta fidelidad, trazabilidad en Jira y validación con usuario (Word)](docs/Grupo7_Prototipo_y_Validacion.docx) · [Presentación (PDF)](docs/Grupo7_Presentacion_Horarios.pdf) · [Video de la validación](https://youtu.be/jlXAin0M4f0)
+- [Manual del prototipo en PDF](docs/Grupo7_Manual_Prototipo_Horarios.pdf)
 - Cronograma, recursos y costos (EDT, PERT, Gantt)
 - [Manual de usuario y pruebas](MANUAL.md)
 - [Pendientes, supuestos y cambios en vivo](PENDIENTES.md)
